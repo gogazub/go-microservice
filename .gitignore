@@ -1,0 +1,19 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Local development
+.local
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Binaries
+/bin/
+/dist/
+
+# Logs
+*.log
+logs/ 
