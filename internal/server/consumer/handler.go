@@ -3,10 +3,10 @@ package consumer
 import (
 	"context"
 
-	"github.com/gogazub/myapp/internal/repository/model"
+	"github.com/gogazub/myapp/internal/orders"
 )
 
-type OrderHandlerFunc func(ctx context.Context, order *model.Order) error
+type OrderHandlerFunc func(ctx context.Context, order *orders.ModelOrder) error
 
 type FuncHandler struct {
 	handlerFunc OrderHandlerFunc
@@ -16,6 +16,6 @@ func NewFuncHandler(handlerFunc OrderHandlerFunc) *FuncHandler {
 	return &FuncHandler{handlerFunc: handlerFunc}
 }
 
-func (h *FuncHandler) HandleOrder(order *model.Order) error {
+func (h *FuncHandler) HandleOrder(order *orders.ModelOrder) error {
 	return h.handlerFunc(context.Background(), order)
 }

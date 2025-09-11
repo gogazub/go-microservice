@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/gogazub/myapp/internal/repository/model"
+	"github.com/gogazub/myapp/internal/orders"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -26,7 +26,7 @@ type Consumer struct {
 }
 
 type Handler interface {
-	HandleOrder(order *model.Order) error
+	HandleOrder(order *orders.ModelOrder) error
 }
 
 func NewConsumer(config Config, handler Handler) *Consumer {
@@ -72,7 +72,7 @@ func (c *Consumer) processMessage(msg kafka.Message) error {
 	log.Printf("Received message: topic=%s partition=%d offset=%d",
 		msg.Topic, msg.Partition, msg.Offset)
 
-	var order model.Order
+	var order orders.ModelOrder
 	if err := json.Unmarshal(msg.Value, &order); err != nil {
 		return fmt.Errorf("failed to unmarshal order: %w", err)
 	}

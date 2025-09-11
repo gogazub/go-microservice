@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gogazub/myapp/internal/consumer"
-	"github.com/gogazub/myapp/internal/repository/model"
+	"github.com/gogazub/myapp/internal/orders"
+	"github.com/gogazub/myapp/internal/server/consumer"
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 	log.Println("Shutting down consumer...")
 }
 
-func handleOrder(ctx context.Context, order *model.Order) error {
+func handleOrder(ctx context.Context, order *orders.ModelOrder) error {
 	log.Printf("Handling order: %s", order.OrderUID)
 	log.Printf("Track number: %s", order.TrackNumber)
 	log.Printf("Customer: %s", order.Delivery.Name)

@@ -1,10 +1,10 @@
-package model
+package orders
 
 import (
 	"time"
 )
 
-type Order struct {
+type ModelOrder struct {
 	OrderUID          string    `json:"order_uid" db:"order_uid"`
 	TrackNumber       string    `json:"track_number" db:"track_number"`
 	Entry             string    `json:"entry" db:"entry"`
