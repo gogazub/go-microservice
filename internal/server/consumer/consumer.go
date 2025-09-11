@@ -21,15 +21,11 @@ type Config struct {
 
 type Consumer struct {
 	reader  *kafka.Reader
-	handler Handler
+	service orders.Service
 	config  Config
 }
 
-type Handler interface {
-	HandleOrder(order *orders.ModelOrder) error
-}
-
-func NewConsumer(config Config, handler Handler) *Consumer {
+func NewConsumer(config Config, service orders.Service) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  config.Brokers,
 		Topic:    config.Topic,
@@ -41,7 +37,7 @@ func NewConsumer(config Config, handler Handler) *Consumer {
 
 	return &Consumer{
 		reader:  reader,
-		handler: handler,
+		service: service,
 		config:  config,
 	}
 }
@@ -68,6 +64,7 @@ func (c *Consumer) Start(ctx context.Context) {
 	}
 }
 
+// Обработка сообщения из кафки
 func (c *Consumer) processMessage(msg kafka.Message) error {
 	log.Printf("Received message: topic=%s partition=%d offset=%d",
 		msg.Topic, msg.Partition, msg.Offset)
@@ -79,11 +76,11 @@ func (c *Consumer) processMessage(msg kafka.Message) error {
 
 	log.Printf("Processing order: %s", order.OrderUID)
 
-	if err := c.handler.HandleOrder(&order); err != nil {
-		return fmt.Errorf("handler failed for order %s: %w", order.OrderUID, err)
+	if err := c.service.SaveOrder(&order); err != nil {
+		return fmt.Errorf("failed to save order: %w", err)
 	}
 
-	log.Printf("Successfully processed order: %s", order.OrderUID)
+	log.Printf("Successfully processed and saved order: %s", order.OrderUID)
 	return nil
 }
 
