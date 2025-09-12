@@ -22,6 +22,7 @@ func NewServer(service orders.Service) *Server {
 // Запускает сервер
 func (s *Server) Start(address string) error {
 	http.HandleFunc("/orders/", s.handleGetOrderByID)
+	http.Handle("/", http.FileServer(http.Dir("./internal/server/web")))
 	log.Printf("Server is running on %s\n", address)
 	return http.ListenAndServe(address, nil)
 }
