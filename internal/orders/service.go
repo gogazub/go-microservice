@@ -15,9 +15,9 @@ func NewService(psqlRepo Repository, cacheRepo Repository) *Service {
 
 // Сохраняет заказ в оба репозитория
 func (s *Service) SaveOrder(order *ModelOrder) error {
-	if err := s.cacheRepo.Save(order); err != nil {
-		return err
-	}
+	// if err := s.cacheRepo.Save(order); err != nil {
+	// 	return err
+	// }
 	if err := s.psqlRepo.Save(order); err != nil {
 		return err
 	}
@@ -30,7 +30,13 @@ func (s *Service) GetOrderByID(id string) (*ModelOrder, error) {
 	if err == nil {
 		return order, nil
 	}
-	return s.psqlRepo.GetByID(id)
+	order, err = s.psqlRepo.GetByID(id)
+	if err == nil {
+		if order != nil {
+			s.cacheRepo.Save(order)
+		}
+	}
+	return order, err
 }
 
 // Получает все заказы из БД
