@@ -19,3 +19,7 @@
 logs/ 
 
 structure.txt
+
+apply-migration
+
+script.sh

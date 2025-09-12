@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gogazub/myapp/internal/orders"
+	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -74,6 +75,10 @@ func (c *Consumer) processMessage(msg kafka.Message) error {
 		return fmt.Errorf("failed to unmarshal order: %w", err)
 	}
 
+	// Валидация UUID для OrderUID
+	if _, err := uuid.Parse(order.OrderUID); err != nil {
+		return fmt.Errorf("invalid UUID format for OrderUID: %s, error: %w", order.OrderUID, err)
+	}
 	log.Printf("Processing order: %s", order.OrderUID)
 
 	if err := c.service.SaveOrder(&order); err != nil {

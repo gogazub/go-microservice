@@ -54,3 +54,13 @@ CREATE TABLE items (
     brand VARCHAR(128),
     status INT
 );
+
+
+ALTER TABLE deliveries
+  ADD CONSTRAINT deliveries_order_uid_uniq UNIQUE (order_uid);
+
+ALTER TABLE payments
+  ADD CONSTRAINT payments_order_uid_uniq UNIQUE (order_uid);
+
+ALTER TABLE items
+  ADD CONSTRAINT items_order_uid_chrt_id_uniq UNIQUE (order_uid, chrt_id);

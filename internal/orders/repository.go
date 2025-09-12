@@ -134,7 +134,7 @@ func (r *OrderRepository) saveDelivery(tx *sql.Tx, o *ModelOrder) error {
 	_, err := tx.Exec(`
 		INSERT INTO deliveries (order_uid, name, phone, zip, city, address, region, email)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-		ON CONFLICT (order_uid) DO UPDATE SET
+		ON CONFLICT ON CONSTRAINT deliveries_order_uid_uniq DO UPDATE SET
 			name = EXCLUDED.name,
 			phone = EXCLUDED.phone,
 			zip = EXCLUDED.zip,

@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/gogazub/myapp/internal/orders"
+	"github.com/gogazub/myapp/internal/server"
 	"github.com/gogazub/myapp/internal/server/consumer"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -47,10 +48,26 @@ func startConsumer(service orders.Service) {
 	kafkaConsumer.Start(ctx)
 }
 
-// startServer запускает HTTP сервер (пока заглушка)
-func startServer(service orders.Service) {
-	log.Println("Starting HTTP server...")
+// startServer запускает HTTP сервер, который обслуживает запросы по order_id
+func startServer(service orders.Service) error {
+	srv := server.NewServer(service)
 
+	if err := godotenv.Load(); err != nil {
+		return fmt.Errorf("Error loading .env file: %w", err)
+	}
+
+	address := os.Getenv("SERVER_PORT")
+	if address == "" {
+		return fmt.Errorf("SERVER_PORT not set in .env file")
+	}
+
+	log.Printf("Starting HTTP server on %s...", address)
+	if err := srv.Start(address); err != nil {
+		log.Printf("Error starting HTTP server: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 // Создает подключение к БД
