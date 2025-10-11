@@ -48,9 +48,6 @@
 #### Тестовый модуль
 Интеграционные тесты для проверки сценариев end-to-end.
 
-### Структура
-Будет добавлено позже.
-
 ### API
 
 #### `GET /orders/{id}`
@@ -75,9 +72,37 @@
 - Кэш: in-memory
 - Контейнеризация: Docker + docker-compose
 - Документация API: Swagger / OpenAPI *(будет добавлено позже)*
-- Тестовые данные: gofakeit/faker *(будет интегрировано позже)*
+- Тестирование: gofakeit/faker *(будет интегрировано позже)*
 
 ---
+
+### Структура
+```
+.
+├── cmd
+│   └── server
+│       └── main.go
+├── docker-compose.yaml
+├── internal
+│   ├── orders
+│   │   ├── cache-repository.go
+│   │   ├── model.go
+│   │   ├── repository.go
+│   │   └── service.go
+│   └── server
+│       ├── consumer
+│       │   └── consumer.go
+│       ├── server.go
+│       └── web
+│           └── index.html
+├── migrations
+│   ├── 000001_create_tables.down.sql
+│   └── 000001_create_tables.up.sql
+├── README.md
+└── test_producer
+    └── tests.py
+```
+
 
 ## Конфигурация
 Будет добавлено позже.
