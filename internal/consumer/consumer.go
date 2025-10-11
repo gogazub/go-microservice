@@ -7,7 +7,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/gogazub/myapp/internal/orders"
+	"github.com/gogazub/myapp/internal/model"
+	svc "github.com/gogazub/myapp/internal/service"
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 )
@@ -22,11 +23,11 @@ type Config struct {
 
 type Consumer struct {
 	reader  *kafka.Reader
-	service orders.Service
+	service svc.Service
 	config  Config
 }
 
-func NewConsumer(config Config, service orders.Service) *Consumer {
+func NewConsumer(config Config, service svc.Service) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  config.Brokers,
 		Topic:    config.Topic,
@@ -70,7 +71,7 @@ func (c *Consumer) processMessage(msg kafka.Message) error {
 	log.Printf("Received message: topic=%s partition=%d offset=%d",
 		msg.Topic, msg.Partition, msg.Offset)
 
-	var order orders.ModelOrder
+	var order model.Order
 	if err := json.Unmarshal(msg.Value, &order); err != nil {
 		return fmt.Errorf("failed to unmarshal order: %w", err)
 	}

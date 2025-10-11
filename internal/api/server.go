@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"encoding/json"
@@ -6,11 +6,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gogazub/myapp/internal/orders"
+	"github.com/gogazub/myapp/internal/service"
 )
 
 type Server struct {
-	service orders.Service
+	service service.Service
 }
 
 func NewServer(service orders.Service) *Server {

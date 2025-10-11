@@ -1,19 +1,21 @@
-package orders
+package repository
 
 import (
 	"fmt"
 	"log"
 	"sync"
+
+	"github.com/gogazub/myapp/internal/model"
 )
 
 type CacheRepository struct {
 	mu    sync.RWMutex
-	cache map[string]*ModelOrder
+	cache map[string]*model.Order
 }
 
 // Кэш репозиторий при создании заполняется данными из БД
 func NewCacheRepository(psqlRepo Repository) *CacheRepository {
-	cache := make(map[string]*ModelOrder)
+	cache := make(map[string]*model.Order)
 
 	orders, err := psqlRepo.GetAll()
 	if err != nil {
@@ -30,7 +32,7 @@ func NewCacheRepository(psqlRepo Repository) *CacheRepository {
 }
 
 // Сохранить OrderModel в кэше по OrderUID
-func (r *CacheRepository) Save(order *ModelOrder) error {
+func (r *CacheRepository) Save(order *model.Order) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.cache[order.OrderUID] = order
@@ -38,7 +40,7 @@ func (r *CacheRepository) Save(order *ModelOrder) error {
 }
 
 // Получить данные о заказе из кэша по uid заказа
-func (r *CacheRepository) GetByID(id string) (*ModelOrder, error) {
+func (r *CacheRepository) GetByID(id string) (*model.Order, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	order, exists := r.cache[id]
@@ -48,11 +50,11 @@ func (r *CacheRepository) GetByID(id string) (*ModelOrder, error) {
 	return order, nil
 }
 
-func (r *CacheRepository) GetAll() ([]*ModelOrder, error) {
+func (r *CacheRepository) GetAll() ([]*model.Order, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	var orders []*ModelOrder
+	var orders []*model.Order
 	for _, order := range r.cache {
 		orders = append(orders, order)
 	}

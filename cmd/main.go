@@ -9,9 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/gogazub/myapp/internal/orders"
-	"github.com/gogazub/myapp/internal/server"
-	"github.com/gogazub/myapp/internal/server/consumer"
+	"github.com/gogazub/myapp/internal/api"
+	"github.com/gogazub/myapp/internal/consumer"
+	repo "github.com/gogazub/myapp/internal/repository"
+	"github.com/gogazub/myapp/internal/service"
+	svc "github.com/gogazub/myapp/internal/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -32,7 +34,7 @@ func main() {
 }
 
 // startConsumer запускает Kafka consumer и передает данные в сервис
-func startConsumer(service orders.Service) {
+func startConsumer(service svc.Service) {
 	consumerConfig := consumer.Config{
 		Brokers:  []string{"localhost:9092"},
 		Topic:    "orders",
@@ -49,8 +51,8 @@ func startConsumer(service orders.Service) {
 }
 
 // startServer запускает HTTP сервер, который обслуживает запросы по order_id
-func startServer(service orders.Service) error {
-	srv := server.NewServer(service)
+func startServer(service svc.Service) error {
+	srv := api.NewServer(service)
 
 	if err := godotenv.Load(); err != nil {
 		return fmt.Errorf("Error loading .env file: %w", err)
@@ -100,15 +102,15 @@ func connectToDB() (*sql.DB, error) {
 }
 
 // createService инициализирует репозитории и сервис для обработки заказов
-func createService() (orders.Service, error) {
+func createService() (svc.Service, error) {
 	db, err := connectToDB()
 	if err != nil {
-		return orders.Service{}, err
+		return svc.Service{}, err
 	}
 
-	psqlRepo := orders.NewOrderRepository(db)
-	cacheRepo := orders.NewCacheRepository(psqlRepo)
+	psqlRepo := repo.NewOrderRepository(db)
+	cacheRepo := repo.NewCacheRepository(psqlRepo)
 
-	service := orders.NewService(psqlRepo, cacheRepo)
+	service := service.NewService(psqlRepo, cacheRepo)
 	return *service, nil
 }

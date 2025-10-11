@@ -1,12 +1,17 @@
-package orders
+package service
+
+import (
+	"github.com/gogazub/myapp/internal/model"
+	repo "github.com/gogazub/myapp/internal/repository"
+)
 
 type Service struct {
-	psqlRepo  Repository
-	cacheRepo Repository
+	psqlRepo  repo.Repository
+	cacheRepo repo.Repository
 }
 
 // Конструктор для создания нового Service
-func NewService(psqlRepo Repository, cacheRepo Repository) *Service {
+func NewService(psqlRepo repo.Repository, cacheRepo repo.Repository) *Service {
 	return &Service{
 		psqlRepo:  psqlRepo,
 		cacheRepo: cacheRepo,
@@ -14,7 +19,7 @@ func NewService(psqlRepo Repository, cacheRepo Repository) *Service {
 }
 
 // Сохраняет заказ в оба репозитория
-func (s *Service) SaveOrder(order *ModelOrder) error {
+func (s *Service) SaveOrder(order *model.Order) error {
 	// if err := s.cacheRepo.Save(order); err != nil {
 	// 	return err
 	// }
@@ -25,7 +30,7 @@ func (s *Service) SaveOrder(order *ModelOrder) error {
 }
 
 // Получает заказ по ID, сначала ищет в кэше, если не находит — в БД
-func (s *Service) GetOrderByID(id string) (*ModelOrder, error) {
+func (s *Service) GetOrderByID(id string) (*model.Order, error) {
 	order, err := s.cacheRepo.GetByID(id)
 	if err == nil {
 		return order, nil
@@ -40,6 +45,6 @@ func (s *Service) GetOrderByID(id string) (*ModelOrder, error) {
 }
 
 // Получает все заказы из БД
-func (s *Service) GetAllOrders() ([]*ModelOrder, error) {
+func (s *Service) GetAllOrders() ([]*model.Order, error) {
 	return s.psqlRepo.GetAll()
 }

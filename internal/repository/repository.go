@@ -1,14 +1,16 @@
-package orders
+package repository
 
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/gogazub/myapp/internal/model"
 )
 
 type Repository interface {
-	Save(order *ModelOrder) error
-	GetByID(id string) (*ModelOrder, error)
-	GetAll() ([]*ModelOrder, error)
+	Save(order *model.Order) error
+	GetByID(id string) (*model.Order, error)
+	GetAll() ([]*model.Order, error)
 }
 
 type OrderRepository struct {
@@ -20,7 +22,7 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 }
 
 // Save сохраняет заказ вместе с зависимыми сущностями
-func (r *OrderRepository) Save(order *ModelOrder) error {
+func (r *OrderRepository) Save(order *model.Order) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return err
@@ -44,8 +46,8 @@ func (r *OrderRepository) Save(order *ModelOrder) error {
 }
 
 // GetByID возвращает заказ по ID
-func (r *OrderRepository) GetByID(id string) (*ModelOrder, error) {
-	var order ModelOrder
+func (r *OrderRepository) GetByID(id string) (*model.Order, error) {
+	var order model.Order
 
 	if err := r.loadOrder(&order, id); err != nil {
 		return nil, err
@@ -63,14 +65,14 @@ func (r *OrderRepository) GetByID(id string) (*ModelOrder, error) {
 	return &order, nil
 }
 
-func (r *OrderRepository) GetAll() ([]*ModelOrder, error) {
+func (r *OrderRepository) GetAll() ([]*model.Order, error) {
 	rows, err := r.db.Query(`SELECT order_uid FROM orders`)
 	if err != nil {
 		return nil, fmt.Errorf("get all orders: %w", err)
 	}
 	defer rows.Close()
 
-	var orders []*ModelOrder
+	var orders []*model.Order
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
@@ -90,7 +92,7 @@ func (r *OrderRepository) GetAll() ([]*ModelOrder, error) {
 // ---------------- PRIVATE (orders) ----------------
 //
 
-func (r *OrderRepository) saveOrder(tx *sql.Tx, o *ModelOrder) error {
+func (r *OrderRepository) saveOrder(tx *sql.Tx, o *model.Order) error {
 	_, err := tx.Exec(`
 		INSERT INTO orders (
 			order_uid, track_number, entry, locale, internal_signature,
@@ -116,7 +118,7 @@ func (r *OrderRepository) saveOrder(tx *sql.Tx, o *ModelOrder) error {
 	return nil
 }
 
-func (r *OrderRepository) loadOrder(o *ModelOrder, id string) error {
+func (r *OrderRepository) loadOrder(o *model.Order, id string) error {
 	return r.db.QueryRow(`
 		SELECT order_uid, track_number, entry, locale, internal_signature,
 		       customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard
@@ -130,7 +132,7 @@ func (r *OrderRepository) loadOrder(o *ModelOrder, id string) error {
 // ---------------- PRIVATE (delivery) ----------------
 //
 
-func (r *OrderRepository) saveDelivery(tx *sql.Tx, o *ModelOrder) error {
+func (r *OrderRepository) saveDelivery(tx *sql.Tx, o *model.Order) error {
 	_, err := tx.Exec(`
 		INSERT INTO deliveries (order_uid, name, phone, zip, city, address, region, email)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
@@ -151,7 +153,7 @@ func (r *OrderRepository) saveDelivery(tx *sql.Tx, o *ModelOrder) error {
 	return nil
 }
 
-func (r *OrderRepository) loadDelivery(o *ModelOrder) error {
+func (r *OrderRepository) loadDelivery(o *model.Order) error {
 	return r.db.QueryRow(`
 		SELECT delivery_id, order_uid, name, phone, zip, city, address, region, email
 		FROM deliveries WHERE order_uid = $1
@@ -164,7 +166,7 @@ func (r *OrderRepository) loadDelivery(o *ModelOrder) error {
 // ---------------- PRIVATE (payment) ----------------
 //
 
-func (r *OrderRepository) savePayment(tx *sql.Tx, o *ModelOrder) error {
+func (r *OrderRepository) savePayment(tx *sql.Tx, o *model.Order) error {
 	_, err := tx.Exec(`
 		INSERT INTO payments (order_uid, transaction, request_id, currency, provider,
 			amount, payment_dt, bank, delivery_cost, goods_total, custom_fee)
@@ -190,7 +192,7 @@ func (r *OrderRepository) savePayment(tx *sql.Tx, o *ModelOrder) error {
 	return nil
 }
 
-func (r *OrderRepository) loadPayment(o *ModelOrder) error {
+func (r *OrderRepository) loadPayment(o *model.Order) error {
 	return r.db.QueryRow(`
 		SELECT payment_id, order_uid, transaction, request_id, currency, provider,
 		       amount, payment_dt, bank, delivery_cost, goods_total, custom_fee
@@ -205,7 +207,7 @@ func (r *OrderRepository) loadPayment(o *ModelOrder) error {
 // ---------------- PRIVATE (items) ----------------
 //
 
-func (r *OrderRepository) saveItems(tx *sql.Tx, o *ModelOrder) error {
+func (r *OrderRepository) saveItems(tx *sql.Tx, o *model.Order) error {
 	_, err := tx.Exec(`DELETE FROM items WHERE order_uid = $1`, o.OrderUID)
 	if err != nil {
 		return fmt.Errorf("deleteItems: %w", err)
@@ -225,7 +227,7 @@ func (r *OrderRepository) saveItems(tx *sql.Tx, o *ModelOrder) error {
 	return nil
 }
 
-func (r *OrderRepository) loadItems(o *ModelOrder) error {
+func (r *OrderRepository) loadItems(o *model.Order) error {
 	rows, err := r.db.Query(`
 		SELECT item_id, order_uid, chrt_id, track_number, price, rid, name,
 		       sale, size, total_price, nm_id, brand, status
@@ -237,7 +239,7 @@ func (r *OrderRepository) loadItems(o *ModelOrder) error {
 	defer rows.Close()
 
 	for rows.Next() {
-		var it Item
+		var it model.Item
 		if err := rows.Scan(&it.ItemID, &it.OrderUID, &it.ChrtID, &it.TrackNumber, &it.Price,
 			&it.Rid, &it.Name, &it.Sale, &it.Size, &it.TotalPrice, &it.NmID, &it.Brand, &it.Status); err != nil {
 			return fmt.Errorf("scanItem: %w", err)
