@@ -34,8 +34,6 @@ func NewCacheRepository(psqlRepo Repository) *CacheRepository {
 
 // Сохранить OrderModel в кэше по OrderUID
 func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
-	// Быстрый отказ, если контекст уже отменен, чтобы не лочить mutex лишний раз
-	// Хотя сама операция O(1)
 	if err := ctx.Err(); err != nil {
 		return nil
 	}
@@ -48,8 +46,6 @@ func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 
 // Получить данные о заказе из кэша по uid заказа
 func (r *CacheRepository) GetByID(ctx context.Context, id string) (*model.Order, error) {
-	// Быстрый отказ, если контекст уже отменен, чтобы не лочить mutex лишний раз
-	// Хотя сама операция O(1)
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

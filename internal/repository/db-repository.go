@@ -45,16 +45,19 @@ func (r *DBRepository) Save(ctx context.Context, order *model.Order) error {
 func (r *DBRepository) GetByID(ctx context.Context, id string) (*model.Order, error) {
 	var order model.Order
 
-	if err := r.loadOrder(&order, id); err != nil {
+	if err := r.loadOrder(ctx, &order, id); err != nil {
 		return nil, err
 	}
-	if err := r.loadDelivery(&order); err != nil {
+	if err := r.loadDelivery(ctx, &order); err != nil {
 		return nil, err
 	}
-	if err := r.loadPayment(&order); err != nil {
+	if err := r.loadPayment(ctx, &order); err != nil {
 		return nil, err
 	}
-	if err := r.loadItems(&order); err != nil {
+	if err := r.loadItems(ctx, &order); err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
@@ -121,8 +124,8 @@ func (r *DBRepository) saveOrder(tx *sql.Tx, o *model.Order) error {
 	return nil
 }
 
-func (r *DBRepository) loadOrder(o *model.Order, id string) error {
-	return r.db.QueryRow(`
+func (r *DBRepository) loadOrder(ctx context.Context, o *model.Order, id string) error {
+	return r.db.QueryRowContext(ctx, `
 		SELECT order_uid, track_number, entry, locale, internal_signature,
 		       customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard
 		FROM orders WHERE order_uid = $1
@@ -156,8 +159,8 @@ func (r *DBRepository) saveDelivery(tx *sql.Tx, o *model.Order) error {
 	return nil
 }
 
-func (r *DBRepository) loadDelivery(o *model.Order) error {
-	return r.db.QueryRow(`
+func (r *DBRepository) loadDelivery(ctx context.Context, o *model.Order) error {
+	return r.db.QueryRowContext(ctx, `
 		SELECT delivery_id, order_uid, name, phone, zip, city, address, region, email
 		FROM deliveries WHERE order_uid = $1
 	`, o.OrderUID).Scan(&o.Delivery.DeliveryID, &o.Delivery.OrderUID, &o.Delivery.Name,
@@ -195,8 +198,8 @@ func (r *DBRepository) savePayment(tx *sql.Tx, o *model.Order) error {
 	return nil
 }
 
-func (r *DBRepository) loadPayment(o *model.Order) error {
-	return r.db.QueryRow(`
+func (r *DBRepository) loadPayment(ctx context.Context, o *model.Order) error {
+	return r.db.QueryRowContext(ctx, `
 		SELECT payment_id, order_uid, transaction, request_id, currency, provider,
 		       amount, payment_dt, bank, delivery_cost, goods_total, custom_fee
 		FROM payments WHERE order_uid = $1
@@ -230,8 +233,8 @@ func (r *DBRepository) saveItems(tx *sql.Tx, o *model.Order) error {
 	return nil
 }
 
-func (r *DBRepository) loadItems(o *model.Order) error {
-	rows, err := r.db.Query(`
+func (r *DBRepository) loadItems(ctx context.Context, o *model.Order) error {
+	rows, err := r.db.QueryContext(ctx, `
 		SELECT item_id, order_uid, chrt_id, track_number, price, rid, name,
 		       sale, size, total_price, nm_id, brand, status
 		FROM items WHERE order_uid = $1
