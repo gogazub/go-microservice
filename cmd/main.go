@@ -51,25 +51,23 @@ func startConsumer(service svc.Service) {
 }
 
 // startServer запускает HTTP сервер, который обслуживает запросы по order_id
-func startServer(service svc.Service) error {
+func startServer(service svc.Service) {
 	srv := api.NewServer(service)
 
 	if err := godotenv.Load(); err != nil {
-		return fmt.Errorf("Error loading .env file: %w", err)
+		log.Fatalf("Error loading .env file: %w", err)
 	}
 
 	address := os.Getenv("SERVER_PORT")
 	if address == "" {
-		return fmt.Errorf("SERVER_PORT not set in .env file")
+		log.Fatalf("SERVER_PORT not set in .env file")
 	}
 
 	log.Printf("Starting HTTP server on %s...", address)
 	if err := srv.Start(address); err != nil {
 		log.Printf("Error starting HTTP server: %v", err)
-		return err
+		return
 	}
-
-	return nil
 }
 
 // Создает подключение к БД

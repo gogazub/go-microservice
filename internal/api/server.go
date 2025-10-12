@@ -1,19 +1,21 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
-	"github.com/gogazub/myapp/internal/service"
+	svc "github.com/gogazub/myapp/internal/service"
 )
 
 type Server struct {
-	service service.Service
+	service svc.Service
 }
 
-func NewServer(service orders.Service) *Server {
+func NewServer(service svc.Service) *Server {
 	return &Server{
 		service: service,
 	}
@@ -31,9 +33,14 @@ func (s *Server) Start(address string) error {
 func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 	orderID := r.URL.Path[len("/orders/"):]
 
-	order, err := s.service.GetOrderByID(orderID)
+	// Используем контекст из http запроса. Он канселится, если запрос был отменен или разорвано соединение
+	ctx_base := r.Context()
+	// Навешиваем на него таймаут и прокидываем во все слои
+	ctx, cancel := context.WithTimeout(ctx_base, 1*time.Minute)
+	defer cancel()
+	order, err := s.service.GetOrderByID(ctx, orderID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get order: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to get order: %v", err), http.StatusNotFound)
 		return
 	}
 

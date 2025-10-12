@@ -59,7 +59,7 @@ func (c *Consumer) Start(ctx context.Context) {
 				continue
 			}
 
-			if err := c.processMessage(msg); err != nil {
+			if err := c.processMessage(ctx, msg); err != nil {
 				log.Printf("Error processing message: %v", err)
 			}
 		}
@@ -67,7 +67,7 @@ func (c *Consumer) Start(ctx context.Context) {
 }
 
 // Обработка сообщения из кафки
-func (c *Consumer) processMessage(msg kafka.Message) error {
+func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error {
 	log.Printf("Received message: topic=%s partition=%d offset=%d",
 		msg.Topic, msg.Partition, msg.Offset)
 
@@ -82,7 +82,7 @@ func (c *Consumer) processMessage(msg kafka.Message) error {
 	}
 	log.Printf("Processing order: %s", order.OrderUID)
 
-	if err := c.service.SaveOrder(&order); err != nil {
+	if err := c.service.SaveOrder(ctx, &order); err != nil {
 		return fmt.Errorf("failed to save order: %w", err)
 	}
 

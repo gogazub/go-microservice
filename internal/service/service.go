@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/gogazub/myapp/internal/model"
 	repo "github.com/gogazub/myapp/internal/repository"
 )
@@ -19,32 +21,29 @@ func NewService(psqlRepo repo.Repository, cacheRepo repo.Repository) *Service {
 }
 
 // Сохраняет заказ в оба репозитория
-func (s *Service) SaveOrder(order *model.Order) error {
-	// if err := s.cacheRepo.Save(order); err != nil {
-	// 	return err
-	// }
-	if err := s.psqlRepo.Save(order); err != nil {
+func (s *Service) SaveOrder(ctx context.Context, order *model.Order) error {
+	if err := s.psqlRepo.Save(ctx, order); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Получает заказ по ID, сначала ищет в кэше, если не находит — в БД
-func (s *Service) GetOrderByID(id string) (*model.Order, error) {
-	order, err := s.cacheRepo.GetByID(id)
+func (s *Service) GetOrderByID(ctx context.Context, id string) (*model.Order, error) {
+	order, err := s.cacheRepo.GetByID(ctx, id)
 	if err == nil {
 		return order, nil
 	}
-	order, err = s.psqlRepo.GetByID(id)
+	order, err = s.psqlRepo.GetByID(ctx, id)
 	if err == nil {
 		if order != nil {
-			s.cacheRepo.Save(order)
+			s.cacheRepo.Save(ctx, order)
 		}
 	}
 	return order, err
 }
 
 // Получает все заказы из БД
-func (s *Service) GetAllOrders() ([]*model.Order, error) {
-	return s.psqlRepo.GetAll()
+func (s *Service) GetAllOrders(ctx context.Context) ([]*model.Order, error) {
+	return s.psqlRepo.GetAll(ctx)
 }
