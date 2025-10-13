@@ -11,6 +11,10 @@ import (
 	svc "github.com/gogazub/myapp/internal/service"
 )
 
+type IServer interface {
+	handleGetOrderByID(w http.ResponseWriter, r *http.Request)
+}
+
 type Server struct {
 	service svc.Service
 }

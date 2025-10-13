@@ -7,6 +7,11 @@ import (
 	repo "github.com/gogazub/myapp/internal/repository"
 )
 
+type IService interface {
+	SaveOrder(ctx context.Context, order *model.Order) error
+	GetOrderByID(ctx context.Context, id string) (*model.Order, error)
+}
+
 type Service struct {
 	psqlRepo  repo.Repository
 	cacheRepo repo.Repository
@@ -44,6 +49,6 @@ func (s *Service) GetOrderByID(ctx context.Context, id string) (*model.Order, er
 }
 
 // Получает все заказы из БД
-func (s *Service) GetAllOrders(ctx context.Context) ([]*model.Order, error) {
-	return s.psqlRepo.GetAll(ctx)
-}
+// func (s *Service) GetAllOrders(ctx context.Context) ([]*model.Order, error) {
+// 	return s.psqlRepo.GetAll(ctx)
+// }

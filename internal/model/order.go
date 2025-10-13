@@ -1,66 +1,64 @@
 package model
 
-import (
-	"time"
-)
+import "time"
 
 type Order struct {
-	OrderUID          string    `json:"order_uid" db:"order_uid"`
-	TrackNumber       string    `json:"track_number" db:"track_number"`
-	Entry             string    `json:"entry" db:"entry"`
-	Locale            string    `json:"locale" db:"locale"`
-	InternalSignature string    `json:"internal_signature" db:"internal_signature"`
-	CustomerID        string    `json:"customer_id" db:"customer_id"`
-	DeliveryService   string    `json:"delivery_service" db:"delivery_service"`
-	Shardkey          string    `json:"shardkey" db:"shardkey"`
-	SmID              int       `json:"sm_id" db:"sm_id"`
-	DateCreated       time.Time `json:"date_created" db:"date_created"`
-	OofShard          string    `json:"oof_shard" db:"oof_shard"`
+	OrderUID          string    `json:"order_uid" db:"order_uid" validate:"required"`
+	TrackNumber       string    `json:"track_number" db:"track_number" validate:"-"`
+	Entry             string    `json:"entry" db:"entry" validate:"-"`
+	Locale            string    `json:"locale" db:"locale" validate:"-"`
+	InternalSignature string    `json:"internal_signature" db:"internal_signature" validate:"-"`
+	CustomerID        string    `json:"customer_id" db:"customer_id" validate:"required"`
+	DeliveryService   string    `json:"delivery_service" db:"delivery_service" validate:"-"`
+	Shardkey          string    `json:"shardkey" db:"shardkey" validate:"-"`
+	SmID              int       `json:"sm_id" db:"sm_id" validate:"gte=0"`
+	DateCreated       time.Time `json:"date_created" db:"date_created" validate:"required"`
+	OofShard          string    `json:"oof_shard" db:"oof_shard" validate:"required"`
 
-	Delivery Delivery `json:"delivery"`
-	Payment  Payment  `json:"payment"`
-	Items    []Item   `json:"items"`
+	Delivery Delivery `json:"delivery" validate:"required,dive"`
+	Payment  Payment  `json:"payment"  validate:"required,dive"`
+	Items    []Item   `json:"items"    validate:"required,min=1,dive"`
 }
 
 type Delivery struct {
-	DeliveryID int    `json:"-" db:"delivery_id"`
-	OrderUID   string `json:"-" db:"order_uid"`
-	Name       string `json:"name" db:"name"`
-	Phone      string `json:"phone" db:"phone"`
-	Zip        string `json:"zip" db:"zip"`
-	City       string `json:"city" db:"city"`
-	Address    string `json:"address" db:"address"`
-	Region     string `json:"region" db:"region"`
-	Email      string `json:"email" db:"email"`
+	DeliveryID int    `json:"-" db:"delivery_id" validate:"-"`
+	OrderUID   string `json:"-" db:"order_uid"    validate:"-"`
+	Name       string `json:"name" db:"name"       validate:"required"`
+	Phone      string `json:"phone" db:"phone"     validate:"required"`
+	Zip        string `json:"zip" db:"zip"         validate:"required"`
+	City       string `json:"city" db:"city"       validate:"required"`
+	Address    string `json:"address" db:"address" validate:"required"`
+	Region     string `json:"region" db:"region"   validate:"required"`
+	Email      string `json:"email" db:"email"     validate:"required,email"`
 }
 
 type Payment struct {
-	PaymentID    int     `json:"-" db:"payment_id"`
-	OrderUID     string  `json:"-" db:"order_uid"`
-	Transaction  string  `json:"transaction" db:"transaction"`
-	RequestID    string  `json:"request_id" db:"request_id"`
-	Currency     string  `json:"currency" db:"currency"`
-	Provider     string  `json:"provider" db:"provider"`
-	Amount       float64 `json:"amount" db:"amount"`
-	PaymentDt    int64   `json:"payment_dt" db:"payment_dt"`
-	Bank         string  `json:"bank" db:"bank"`
-	DeliveryCost float64 `json:"delivery_cost" db:"delivery_cost"`
-	GoodsTotal   int     `json:"goods_total" db:"goods_total"`
-	CustomFee    float64 `json:"custom_fee" db:"custom_fee"`
+	PaymentID    int     `json:"-" db:"payment_id" validate:"-"`
+	OrderUID     string  `json:"-" db:"order_uid"   validate:"-"`
+	Transaction  string  `json:"transaction" db:"transaction" validate:"required"`
+	RequestID    string  `json:"request_id" db:"request_id"   validate:"omitempty"`
+	Currency     string  `json:"currency" db:"currency"       validate:"required"`
+	Provider     string  `json:"provider" db:"provider"       validate:"required"`
+	Amount       float64 `json:"amount" db:"amount"           validate:"gte=0"`
+	PaymentDt    int64   `json:"payment_dt" db:"payment_dt"   validate:"gte=0"`
+	Bank         string  `json:"bank" db:"bank"               validate:"required"`
+	DeliveryCost float64 `json:"delivery_cost" db:"delivery_cost" validate:"gte=0"`
+	GoodsTotal   int     `json:"goods_total" db:"goods_total"     validate:"gte=0"`
+	CustomFee    float64 `json:"custom_fee" db:"custom_fee"       validate:"gte=0"`
 }
 
 type Item struct {
-	ItemID      int     `json:"-" db:"item_id"`
-	OrderUID    string  `json:"-" db:"order_uid"`
-	ChrtID      int64   `json:"chrt_id" db:"chrt_id"`
-	TrackNumber string  `json:"track_number" db:"track_number"`
-	Price       float64 `json:"price" db:"price"`
-	Rid         string  `json:"rid" db:"rid"`
-	Name        string  `json:"name" db:"name"`
-	Sale        int     `json:"sale" db:"sale"`
-	Size        string  `json:"size" db:"size"`
-	TotalPrice  float64 `json:"total_price" db:"total_price"`
-	NmID        int64   `json:"nm_id" db:"nm_id"`
-	Brand       string  `json:"brand" db:"brand"`
-	Status      int     `json:"status" db:"status"`
+	ItemID      int     `json:"-" db:"item_id"         validate:"-"`
+	OrderUID    string  `json:"-" db:"order_uid"       validate:"-"`
+	ChrtID      int64   `json:"chrt_id" db:"chrt_id"   validate:"required,gte=1"`
+	TrackNumber string  `json:"track_number" db:"track_number" validate:"required"`
+	Price       float64 `json:"price" db:"price"       validate:"gte=0"`
+	Rid         string  `json:"rid" db:"rid"           validate:"-"`
+	Name        string  `json:"name" db:"name"         validate:"-"`
+	Sale        int     `json:"sale" db:"sale"         validate:"gte=0,lte=100"`
+	Size        string  `json:"size" db:"size"         validate:"omitempty"`
+	TotalPrice  float64 `json:"total_price" db:"total_price" validate:"gte=0"`
+	NmID        int64   `json:"nm_id" db:"nm_id"       validate:"gte=0"`
+	Brand       string  `json:"brand" db:"brand"       validate:"-"`
+	Status      int     `json:"status" db:"status"     validate:"gte=0"`
 }

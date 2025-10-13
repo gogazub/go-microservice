@@ -15,27 +15,29 @@ type CacheRepository struct {
 }
 
 // Кэш репозиторий при создании заполняется данными из БД
-func NewCacheRepository(psqlRepo Repository) *CacheRepository {
+func NewCacheRepository() *CacheRepository {
 	cache := make(map[string]*model.Order)
+	return &CacheRepository{
+		cache: cache,
+	}
+}
 
+// Заполнить мапу значениями из БД
+func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 	orders, err := psqlRepo.GetAll(context.Background())
 	if err != nil {
 		log.Println("Error loading orders from DB:", err)
 	} else {
 		for _, order := range orders {
-			cache[order.OrderUID] = order
+			repo.cache[order.OrderUID] = order
 		}
-	}
-
-	return &CacheRepository{
-		cache: cache,
 	}
 }
 
 // Сохранить OrderModel в кэше по OrderUID
 func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 	if err := ctx.Err(); err != nil {
-		return nil
+		return err
 	}
 
 	r.mu.Lock()

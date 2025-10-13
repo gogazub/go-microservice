@@ -1,17 +1,20 @@
 package consumer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gogazub/myapp/internal/model"
 	svc "github.com/gogazub/myapp/internal/service"
-	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 )
+
+var validate *validator.Validate
 
 type Config struct {
 	Brokers  []string
@@ -19,6 +22,10 @@ type Config struct {
 	GroupID  string
 	MinBytes int
 	MaxBytes int
+}
+
+type IConsumer interface {
+	rocessMessage(ctx context.Context, msg kafka.Message) error
 }
 
 type Consumer struct {
@@ -36,6 +43,9 @@ func NewConsumer(config Config, service svc.Service) *Consumer {
 		MaxBytes: config.MaxBytes,
 		MaxWait:  1 * time.Second,
 	})
+
+	//
+	validate = validator.New()
 
 	return &Consumer{
 		reader:  reader,
@@ -72,14 +82,14 @@ func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error 
 		msg.Topic, msg.Partition, msg.Offset)
 
 	var order model.Order
-	if err := json.Unmarshal(msg.Value, &order); err != nil {
-		return fmt.Errorf("failed to unmarshal order: %w", err)
+	decoder := json.NewDecoder(bytes.NewReader(msg.Value))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&order); err != nil {
+		return fmt.Errorf("bad json: %w", err)
 	}
+	// Валидация через validator
+	validate.Struct(order)
 
-	// Валидация UUID для OrderUID
-	if _, err := uuid.Parse(order.OrderUID); err != nil {
-		return fmt.Errorf("invalid UUID format for OrderUID: %s, error: %w", order.OrderUID, err)
-	}
 	log.Printf("Processing order: %s", order.OrderUID)
 
 	if err := c.service.SaveOrder(ctx, &order); err != nil {
@@ -92,4 +102,8 @@ func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error 
 
 func (c *Consumer) Close() error {
 	return c.reader.Close()
+}
+
+func (c *Consumer) ProcessMessageTest(ctx context.Context, msg kafka.Message) error {
+	return c.processMessage(ctx, msg)
 }

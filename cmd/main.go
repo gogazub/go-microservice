@@ -74,7 +74,7 @@ func startServer(service svc.Service) {
 func connectToDB() (*sql.DB, error) {
 	err := godotenv.Load()
 	if err != nil {
-		return nil, fmt.Errorf("Error loading .env file: %w", err)
+		return nil, fmt.Errorf("error loading .env file: %w", err)
 	}
 
 	dbHost := os.Getenv("DB_HOST")
@@ -107,7 +107,8 @@ func createService() (svc.Service, error) {
 	}
 
 	psqlRepo := repo.NewOrderRepository(db)
-	cacheRepo := repo.NewCacheRepository(psqlRepo)
+	cacheRepo := repo.NewCacheRepository()
+	cacheRepo.LoadFromDB(psqlRepo)
 
 	service := service.NewService(psqlRepo, cacheRepo)
 	return *service, nil
