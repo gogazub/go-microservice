@@ -15,8 +15,8 @@ type Order struct {
 	DateCreated       time.Time `json:"date_created" db:"date_created" validate:"required"`
 	OofShard          string    `json:"oof_shard" db:"oof_shard" validate:"required"`
 
-	Delivery Delivery `json:"delivery" validate:"required,dive"`
-	Payment  Payment  `json:"payment"  validate:"required,dive"`
+	Delivery Delivery `json:"delivery" validate:"required"`
+	Payment  Payment  `json:"payment"  validate:"required"`
 	Items    []Item   `json:"items"    validate:"required,min=1,dive"`
 }
 

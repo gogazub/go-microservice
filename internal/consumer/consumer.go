@@ -87,8 +87,11 @@ func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error 
 	if err := decoder.Decode(&order); err != nil {
 		return fmt.Errorf("bad json: %w", err)
 	}
+
 	// Валидация через validator
-	validate.Struct(order)
+	if err := validate.Struct(order); err != nil {
+		return err
+	}
 
 	log.Printf("Processing order: %s", order.OrderUID)
 
