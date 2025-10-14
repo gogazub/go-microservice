@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"log"
@@ -9,9 +10,14 @@ import (
 	"github.com/gogazub/myapp/internal/model"
 )
 
+const maxCacheSize = 1000
+
 type CacheRepository struct {
 	mu    sync.RWMutex
 	cache map[string]*model.Order
+
+	listMu sync.RWMutex
+	list   list.List
 }
 
 // Кэш репозиторий при создании заполняется данными из БД
@@ -19,6 +25,7 @@ func NewCacheRepository() *CacheRepository {
 	cache := make(map[string]*model.Order)
 	return &CacheRepository{
 		cache: cache,
+		list:  *list.New(),
 	}
 }
 
@@ -29,7 +36,11 @@ func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 		log.Println("Error loading orders from DB:", err)
 	} else {
 		for _, order := range orders {
+			if repo.list.Len() > 1000 {
+				break
+			}
 			repo.cache[order.OrderUID] = order
+			repo.list.PushBack(order.OrderUID)
 		}
 	}
 }
@@ -38,6 +49,11 @@ func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+
+	// Забываем самые долгохранящиеся элементы, если места нет
+	if r.list.Len() > maxCacheSize {
+		r.freeLRU()
 	}
 
 	r.mu.Lock()
@@ -85,4 +101,24 @@ func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 		i++
 	}
 	return orders, nil
+}
+
+// Освобождает место в кеше
+func (cr *CacheRepository) freeLRU() {
+	if cr.list.Len() < 10 {
+		return
+	}
+	cr.listMu.Lock()
+	defer cr.listMu.Unlock()
+
+	// Освобождаем сразу 10 мест, чтобы не вызывать очистку с локом мьютекса много раз
+	for i := 0; i < 10; i++ {
+		idx := cr.list.Front().Value.(string)
+		cr.list.Remove(cr.list.Front())
+		delete(cr.cache, idx)
+	}
+}
+
+func (cr *CacheRepository) Size() int {
+	return cr.list.Len()
 }

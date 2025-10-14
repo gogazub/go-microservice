@@ -165,6 +165,20 @@ func TestCacheRepo(t *testing.T) {
 	})
 }
 
+func TestLRU(t *testing.T) {
+	t.Run("Test/LRU save 10000 orders", func(t *testing.T) {
+		r := repository.NewCacheRepository()
+		ctx := context.Background()
+		for i := 0; i < 10000; i++ {
+			order := fakeOrder(strconvI(i))
+			r.Save(ctx, order)
+		}
+		if r.Size() > 1000 {
+			t.Fatalf("saved %d orders \n", r.Size())
+		}
+	})
+}
+
 func fakeOrder(id string) *model.Order {
 	return &model.Order{OrderUID: id}
 }
