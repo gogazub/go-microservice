@@ -14,8 +14,6 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-var validate *validator.Validate
-
 type Config struct {
 	Brokers  []string
 	Topic    string
@@ -29,9 +27,10 @@ type IConsumer interface {
 }
 
 type Consumer struct {
-	reader  *kafka.Reader
-	service svc.Service
-	config  Config
+	reader   *kafka.Reader
+	service  svc.Service
+	config   Config
+	validate *validator.Validate
 }
 
 func NewConsumer(config Config, service svc.Service) *Consumer {
@@ -44,13 +43,11 @@ func NewConsumer(config Config, service svc.Service) *Consumer {
 		MaxWait:  1 * time.Second,
 	})
 
-	//
-	validate = validator.New()
-
 	return &Consumer{
-		reader:  reader,
-		service: service,
-		config:  config,
+		reader:   reader,
+		service:  service,
+		config:   config,
+		validate: validator.New(),
 	}
 }
 
@@ -89,7 +86,8 @@ func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error 
 	}
 
 	// Валидация через validator
-	if err := validate.Struct(order); err != nil {
+	// Можно добавить валидацию с бизнес логикой. Например, что cost == сумме всех item
+	if err := c.validate.Struct(order); err != nil {
 		return err
 	}
 
