@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -44,13 +43,17 @@ func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	order, err := s.service.GetOrderByID(ctx, orderID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get order: %v", err), http.StatusNotFound)
+		// Если получили error от GetOrderById, то даем пользователю 404,а саму ошибку логируем
+		w.WriteHeader(http.StatusNotFound)
+		log.Printf("Failed to get order: %v", err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(order); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to encode order: %v", err), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		log.Printf("Failed to encode order: %v", err)
+		//http.Error(w, fmt.Sprintf("Failed to encode order: %v", err), http.StatusInternalServerError)
 	}
 }

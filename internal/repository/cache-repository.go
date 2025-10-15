@@ -32,7 +32,10 @@ func NewCacheRepository() *CacheRepository {
 // Заполнить мапу значениями из БД
 func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 	orders, err := psqlRepo.GetAll(context.Background())
+
 	if err != nil {
+		// Можно добавить флаг на пропуск логирования ctx.Err.
+		// То есть пропускать ошибки, по типу таймаута
 		log.Println("Error loading orders from DB:", err)
 	} else {
 		for _, order := range orders {

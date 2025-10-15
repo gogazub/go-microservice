@@ -65,7 +65,7 @@ func startServer(service svc.Service) {
 
 	log.Printf("Starting HTTP server on %s...", address)
 	if err := srv.Start(address); err != nil {
-		log.Printf("Error starting HTTP server: %v", err)
+		log.Fatalf("Error starting HTTP server: %v", err)
 		return
 	}
 }

@@ -65,7 +65,7 @@ func (c *Consumer) Start(ctx context.Context) {
 				log.Printf("Error reading message: %v", err)
 				continue
 			}
-
+			// Если не получилось обработать сообщение, то просто логируем ошибку.
 			if err := c.processMessage(ctx, msg); err != nil {
 				log.Printf("Error processing message: %v", err)
 			}

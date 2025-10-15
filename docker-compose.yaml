@@ -48,5 +48,20 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
+  order-service:
+    build: .
+    container_name: order-service
+    depends_on:
+      - postgres
+      - kafka
+    environment:
+      - SERVER_PORT=${SERVER_PORT}
+    ports:
+      - "$SERVER_PORT:${SERVER_PORT}"
+
 volumes:
   postgres_data:
+
+
+
