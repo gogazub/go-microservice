@@ -30,6 +30,9 @@ func (s *Service) SaveOrder(ctx context.Context, order *model.Order) error {
 	if err := s.psqlRepo.Save(ctx, order); err != nil {
 		return err
 	}
+	if err := s.cacheRepo.Save(ctx, order); err != nil {
+		return err
+	}
 	return nil
 }
 
