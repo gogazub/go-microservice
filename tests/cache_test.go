@@ -207,3 +207,62 @@ func strconvI(i int) string {
 	}
 	return string(b[pos:])
 }
+
+func TestLRU_EvictsOldestOnOverflow(t *testing.T) {
+	r := repository.NewCacheRepository()
+	ctx := context.Background()
+
+	const capN = 1000
+	for i := 0; i < capN; i++ {
+		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+	}
+
+	for i := capN; i < capN+25; i++ {
+		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+	}
+
+	for i := 0; i < 25; i++ {
+		if o, _ := r.GetByID(ctx, "k"+strconvI(i)); o != nil {
+			t.Fatalf("expected oldest key evicted: k%v still present", strconvI(i))
+		}
+	}
+
+	for i := capN; i < capN+25; i++ {
+		if o, _ := r.GetByID(ctx, "k"+strconvI(i)); o == nil {
+			t.Fatalf("expected newest key present: k%v missing", strconvI(i))
+		}
+	}
+}
+
+func TestLRU_GetRefreshesRecency(t *testing.T) {
+	r := repository.NewCacheRepository()
+	ctx := context.Background()
+
+	const capN = 1000
+	for i := 0; i < capN; i++ {
+		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+	}
+
+	if _, err := r.GetByID(ctx, "k0"); err != nil {
+		t.Fatalf("refresh k0: %v", err)
+	}
+
+	const extra = 150
+	for i := capN; i < capN+extra; i++ {
+		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+	}
+
+	if o, _ := r.GetByID(ctx, "k0"); o == nil {
+		t.Fatalf("expected k0 to survive eviction after refresh")
+	}
+
+	evictedCount := 0
+	for i := 1; i < 50; i++ {
+		if o, _ := r.GetByID(ctx, "k"+strconvI(i)); o == nil {
+			evictedCount++
+		}
+	}
+	if evictedCount == 0 {
+		t.Fatalf("expected some early keys (k1..k49) to be evicted; got 0")
+	}
+}
