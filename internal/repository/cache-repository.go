@@ -12,9 +12,14 @@ import (
 
 const maxCacheSize = 1000
 
+type cacheEntry struct {
+	elem  *list.Element
+	order *model.Order
+}
+
 type CacheRepository struct {
 	mu    sync.RWMutex
-	cache map[string]*model.Order
+	cache map[string]*cacheEntry
 
 	listMu sync.RWMutex
 	list   list.List
@@ -22,7 +27,7 @@ type CacheRepository struct {
 
 // Кэш репозиторий при создании заполняется данными из БД
 func NewCacheRepository() *CacheRepository {
-	cache := make(map[string]*model.Order)
+	cache := make(map[string]*cacheEntry)
 	return &CacheRepository{
 		cache: cache,
 		list:  *list.New(),
@@ -42,8 +47,10 @@ func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 			if repo.list.Len() > 1000 {
 				break
 			}
-			repo.cache[order.OrderUID] = order
-			repo.list.PushBack(order.OrderUID)
+			repo.Save(context.Background(), order)
+			if repo.list.Len() >= maxCacheSize {
+				break
+			}
 		}
 	}
 }
@@ -61,7 +68,19 @@ func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.cache[order.OrderUID] = order
+
+	if ent, ok := r.cache[order.OrderUID]; ok {
+		// обновляем значение и освежаем позицию
+		ent.order = order
+		r.list.MoveToBack(ent.elem)
+	} else {
+		// новый
+		e := r.list.PushBack(order.OrderUID)
+		r.cache[order.OrderUID] = &cacheEntry{elem: e, order: order}
+		if r.list.Len() > maxCacheSize {
+			r.evictOldest(1) // выпихнуть самый старый
+		}
+	}
 	return nil
 }
 
@@ -124,4 +143,17 @@ func (cr *CacheRepository) freeLRU() {
 
 func (cr *CacheRepository) Size() int {
 	return cr.list.Len()
+}
+
+// Удаляет n самых старых элементов (с головы списка).
+func (r *CacheRepository) evictOldest(n int) {
+	for i := 0; i < n; i++ {
+		front := r.list.Front()
+		if front == nil {
+			return
+		}
+		key := front.Value.(string)
+		r.list.Remove(front)
+		delete(r.cache, key)
+	}
 }
