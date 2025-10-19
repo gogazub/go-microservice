@@ -21,8 +21,7 @@ type CacheRepository struct {
 	mu    sync.RWMutex
 	cache map[string]*cacheEntry
 
-	listMu sync.RWMutex
-	list   list.List
+	list *list.List
 }
 
 // Кэш репозиторий при создании заполняется данными из БД
@@ -30,7 +29,7 @@ func NewCacheRepository() *CacheRepository {
 	cache := make(map[string]*cacheEntry)
 	return &CacheRepository{
 		cache: cache,
-		list:  *list.New(),
+		list:  list.New(),
 	}
 }
 
@@ -44,11 +43,9 @@ func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 		log.Println("Error loading orders from DB:", err)
 	} else {
 		for _, order := range orders {
-			if repo.list.Len() > 1000 {
-				break
-			}
+
 			repo.Save(context.Background(), order)
-			if repo.list.Len() >= maxCacheSize {
+			if repo.Size() >= maxCacheSize {
 				break
 			}
 		}
@@ -59,11 +56,6 @@ func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
 func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 	if err := ctx.Err(); err != nil {
 		return err
-	}
-
-	// Забываем самые долгохранящиеся элементы, если места нет
-	if r.list.Len() > maxCacheSize {
-		r.freeLRU()
 	}
 
 	r.mu.Lock()
@@ -77,27 +69,36 @@ func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 		// новый
 		e := r.list.PushBack(order.OrderUID)
 		r.cache[order.OrderUID] = &cacheEntry{elem: e, order: order}
-		if r.list.Len() > maxCacheSize {
-			r.evictOldest(1) // выпихнуть самый старый
+
+	}
+	for r.list.Len() > maxCacheSize {
+		front := r.list.Front()
+		if front == nil {
+			break
 		}
+		key := front.Value.(string)
+		r.list.Remove(front)
+		delete(r.cache, key)
 	}
 	return nil
 }
 
-// Получить данные о заказе из кэша по uid заказа
+// Получить данные о заказе из кэша по uid заказа. Также освежаем элемент в LRU
 func (r *CacheRepository) GetByID(ctx context.Context, id string) (*model.Order, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	order, exists := r.cache[id]
+	ent, exists := r.cache[id]
 	if !exists {
 		return nil, fmt.Errorf("order not found")
 	}
-	return order, nil
+
+	r.list.MoveToBack(ent.elem)
+	return ent.order, nil
 }
 
 func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
@@ -119,30 +120,16 @@ func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 				return nil, err
 			}
 		}
-		orders = append(orders, order)
+		orders = append(orders, order.order)
 		i++
 	}
 	return orders, nil
 }
 
-// Освобождает место в кеше
-func (cr *CacheRepository) freeLRU() {
-	if cr.list.Len() < 10 {
-		return
-	}
-	cr.listMu.Lock()
-	defer cr.listMu.Unlock()
-
-	// Освобождаем сразу 10 мест, чтобы не вызывать очистку с локом мьютекса много раз
-	for i := 0; i < 10; i++ {
-		idx := cr.list.Front().Value.(string)
-		cr.list.Remove(cr.list.Front())
-		delete(cr.cache, idx)
-	}
-}
-
-func (cr *CacheRepository) Size() int {
-	return cr.list.Len()
+func (r *CacheRepository) Size() int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.list.Len()
 }
 
 // Удаляет n самых старых элементов (с головы списка).
