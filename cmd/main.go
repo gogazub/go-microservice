@@ -34,7 +34,7 @@ func main() {
 }
 
 // startConsumer запускает Kafka consumer и передает данные в сервис
-func startConsumer(service svc.Service) {
+func startConsumer(service svc.IService) {
 	consumerConfig := consumer.Config{
 		Brokers:  []string{"localhost:9092"},
 		Topic:    "orders",
@@ -51,7 +51,7 @@ func startConsumer(service svc.Service) {
 }
 
 // startServer запускает HTTP сервер, который обслуживает запросы по order_id
-func startServer(service svc.Service) {
+func startServer(service svc.IService) {
 	srv := api.NewServer(service)
 
 	if err := godotenv.Load(); err != nil {
@@ -100,10 +100,10 @@ func connectToDB() (*sql.DB, error) {
 }
 
 // createService инициализирует репозитории и сервис для обработки заказов
-func createService() (svc.Service, error) {
+func createService() (*svc.Service, error) {
 	db, err := connectToDB()
 	if err != nil {
-		return svc.Service{}, err
+		return &svc.Service{}, err
 	}
 
 	psqlRepo := repo.NewOrderRepository(db)
@@ -111,5 +111,5 @@ func createService() (svc.Service, error) {
 	cacheRepo.LoadFromDB(psqlRepo)
 
 	service := service.NewService(psqlRepo, cacheRepo)
-	return *service, nil
+	return service, nil
 }

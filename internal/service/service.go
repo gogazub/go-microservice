@@ -50,8 +50,3 @@ func (s *Service) GetOrderByID(ctx context.Context, id string) (*model.Order, er
 	}
 	return order, err
 }
-
-// Получает все заказы из БД
-// func (s *Service) GetAllOrders(ctx context.Context) ([]*model.Order, error) {
-// 	return s.psqlRepo.GetAll(ctx)
-// }

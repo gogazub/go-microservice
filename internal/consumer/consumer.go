@@ -28,12 +28,12 @@ type IConsumer interface {
 
 type Consumer struct {
 	reader   *kafka.Reader
-	service  svc.Service
+	service  svc.IService
 	config   Config
 	validate *validator.Validate
 }
 
-func NewConsumer(config Config, service svc.Service) *Consumer {
+func NewConsumer(config Config, service svc.IService) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  config.Brokers,
 		Topic:    config.Topic,

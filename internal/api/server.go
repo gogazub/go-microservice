@@ -15,10 +15,10 @@ type IServer interface {
 }
 
 type Server struct {
-	service svc.Service
+	service svc.IService
 }
 
-func NewServer(service svc.Service) *Server {
+func NewServer(service svc.IService) *Server {
 	return &Server{
 		service: service,
 	}
