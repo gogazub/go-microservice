@@ -23,7 +23,7 @@ type Config struct {
 }
 
 type IConsumer interface {
-	rocessMessage(ctx context.Context, msg kafka.Message) error
+	processMessage(ctx context.Context, msg kafka.Message) error
 }
 
 type Consumer struct {
@@ -94,7 +94,7 @@ func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error 
 	log.Printf("Processing order: %s", order.OrderUID)
 
 	if err := c.service.SaveOrder(ctx, &order); err != nil {
-		return fmt.Errorf("failed to save order: %w", err)
+		return fmt.Errorf("process message error: %w", err)
 	}
 
 	log.Printf("Successfully processed and saved order: %s", order.OrderUID)

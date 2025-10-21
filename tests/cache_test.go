@@ -11,12 +11,6 @@ import (
 	"github.com/gogazub/myapp/internal/repository"
 )
 
-type Repository interface {
-	Save(ctx context.Context, order *model.Order) error
-	GetByID(ctx context.Context, id string) (*model.Order, error)
-	GetAll(ctx context.Context) ([]*model.Order, error)
-}
-
 /*
  1. GetByID
     a) поиск несуществующего
