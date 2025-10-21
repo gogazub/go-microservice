@@ -26,8 +26,14 @@ type IConsumer interface {
 	processMessage(ctx context.Context, msg kafka.Message) error
 }
 
+// Reader вынесен в интерфейс, для корректного DI. Это даст нам возможности для фейков при тестировании
+type IReader interface {
+	ReadMessage(ctx context.Context) (kafka.Message, error)
+	Close() error
+}
+
 type Consumer struct {
-	reader   *kafka.Reader
+	reader   IReader
 	service  svc.IService
 	config   Config
 	validate *validator.Validate
