@@ -13,12 +13,12 @@ type IService interface {
 }
 
 type Service struct {
-	psqlRepo  repo.Repository
-	cacheRepo repo.Repository
+	psqlRepo  repo.IDBRepository
+	cacheRepo repo.ICacheRepository
 }
 
 // Конструктор для создания нового Service
-func NewService(psqlRepo repo.Repository, cacheRepo repo.Repository) *Service {
+func NewService(psqlRepo repo.IDBRepository, cacheRepo repo.ICacheRepository) *Service {
 	return &Service{
 		psqlRepo:  psqlRepo,
 		cacheRepo: cacheRepo,

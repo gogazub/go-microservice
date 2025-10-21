@@ -12,6 +12,13 @@ import (
 
 const maxCacheSize = 1000
 
+type ICacheRepository interface {
+	LoadFromDB(psqlRepo IDBRepository)
+	Save(ctx context.Context, order *model.Order) error
+	GetByID(ctx context.Context, id string) (*model.Order, error)
+	GetAll(ctx context.Context) ([]*model.Order, error)
+}
+
 type cacheEntry struct {
 	elem  *list.Element
 	order *model.Order
@@ -34,7 +41,7 @@ func NewCacheRepository() *CacheRepository {
 }
 
 // Заполнить мапу значениями из БД
-func (repo *CacheRepository) LoadFromDB(psqlRepo Repository) {
+func (repo *CacheRepository) LoadFromDB(psqlRepo IDBRepository) {
 	orders, err := psqlRepo.GetAll(context.Background())
 
 	if err != nil {

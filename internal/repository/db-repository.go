@@ -8,6 +8,12 @@ import (
 	"github.com/gogazub/myapp/internal/model"
 )
 
+type IDBRepository interface {
+	Save(ctx context.Context, order *model.Order) error
+	GetByID(ctx context.Context, id string) (*model.Order, error)
+	GetAll(ctx context.Context) ([]*model.Order, error)
+}
+
 type DBRepository struct {
 	db *sql.DB
 }
