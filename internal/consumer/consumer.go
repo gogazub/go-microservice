@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gogazub/myapp/internal/model"
@@ -39,20 +38,11 @@ type Consumer struct {
 	validate *validator.Validate
 }
 
-func NewConsumer(config Config, service svc.IService) *Consumer {
-	reader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  config.Brokers,
-		Topic:    config.Topic,
-		GroupID:  config.GroupID,
-		MinBytes: config.MinBytes,
-		MaxBytes: config.MaxBytes,
-		MaxWait:  1 * time.Second,
-	})
+func NewConsumer(service svc.IService, reader IReader) *Consumer {
 
 	return &Consumer{
 		reader:   reader,
 		service:  service,
-		config:   config,
 		validate: validator.New(),
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gogazub/myapp/internal/api"
 	"github.com/gogazub/myapp/internal/consumer"
@@ -16,6 +17,7 @@ import (
 	svc "github.com/gogazub/myapp/internal/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/segmentio/kafka-go"
 )
 
 func main() {
@@ -35,15 +37,23 @@ func main() {
 
 // startConsumer запускает Kafka consumer и передает данные в сервис
 func startConsumer(service svc.IService) {
-	consumerConfig := consumer.Config{
+	config := consumer.Config{
 		Brokers:  []string{"localhost:9092"},
 		Topic:    "orders",
 		GroupID:  "order-group",
 		MinBytes: 10e3,
 		MaxBytes: 10e6,
 	}
-
-	kafkaConsumer := consumer.NewConsumer(consumerConfig, service)
+	kafkaCfg := kafka.ReaderConfig{
+		Brokers:  config.Brokers,
+		Topic:    config.Topic,
+		GroupID:  config.GroupID,
+		MinBytes: config.MinBytes,
+		MaxBytes: config.MaxBytes,
+		MaxWait:  1 * time.Second,
+	}
+	reader := kafka.NewReader(kafkaCfg)
+	kafkaConsumer := consumer.NewConsumer(service, reader)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 

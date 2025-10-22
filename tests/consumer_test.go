@@ -4,44 +4,36 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gogazub/myapp/internal/model"
-	"github.com/stretchr/testify/mock"
+	"github.com/gogazub/myapp/internal/consumer"
+	"github.com/segmentio/kafka-go"
+	"github.com/stretchr/testify/assert"
 )
 
-type MockService struct {
-	mock.Mock
-}
-
-func (m *MockService) SaveOrder(ctx context.Context, order *model.Order) error {
-	args := m.Called(ctx, order)
-	return args.Error(0)
-}
-
-func (m *MockService) GetOrderByID(ctx context.Context, id string) (*model.Order, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*model.Order), args.Error(1)
-}
-
-type StubService struct {
-	Err error
-}
-
-func (s *StubService) SaveOrder(ctx context.Context, order *model.Order) error {
-	return s.Err
-}
-
-func (s *StubService) GetOrderByID(ctx context.Context, id string) (*model.Order, error) {
-	return nil, s.Err
-}
-
+// --- Tests ---
 func TestConsumer(t *testing.T) {
 	// Чтобы тесты были понятны, пишем тесты по методу Arrage-Act-Assert.
 
 	// Аноноимные функции замыкают ресурсы TestConsumer.
 	// Так что здесь можно провести Arrange.
 
+	// Arrange
+	stubReader := &StubReader{}
+	stubService := &StubService{}
+	//mockService := &MockService{}
+	consumer := consumer.NewConsumer(stubService, stubReader)
 	// Закидываем битый json. SaveOrder не вызывается; возращается err == "bad json"
 	t.Run("ProcessMessage/bad json", func(t *testing.T) {
+		// Arrange
+		invalidJSON := kafka.Message{Value: []byte(`{"OrderUID":123`)}
+		stubReader.msg = invalidJSON
+		stubReader.err = nil
+
+		// Act
+		err := consumer.ProcessMessageTest(context.Background(), invalidJSON)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "bad json")
 
 	})
 

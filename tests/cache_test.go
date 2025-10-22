@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gogazub/myapp/internal/model"
 	"github.com/gogazub/myapp/internal/repository"
 )
 
@@ -171,35 +170,6 @@ func TestLRU(t *testing.T) {
 			t.Fatalf("saved %d orders \n", r.Size())
 		}
 	})
-}
-
-func fakeOrder(id string) *model.Order {
-	return &model.Order{OrderUID: id}
-}
-
-func idsFromOrders(orders []*model.Order) []string {
-	out := make([]string, 0, len(orders))
-	for _, o := range orders {
-		out = append(out, o.OrderUID)
-	}
-	sort.Strings(out)
-	return out
-}
-
-// небольшая утилита, чтобы не тянуть strconv
-func strconvI(i int) string {
-	const digits = "0123456789"
-	if i == 0 {
-		return "0"
-	}
-	var b [32]byte
-	pos := len(b)
-	for i > 0 {
-		pos--
-		b[pos] = digits[i%10]
-		i /= 10
-	}
-	return string(b[pos:])
 }
 
 func TestLRU_EvictsOldestOnOverflow(t *testing.T) {
