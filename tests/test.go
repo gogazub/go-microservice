@@ -2,11 +2,15 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
+	"testing"
+	"time"
 
 	"github.com/gogazub/myapp/internal/model"
 	"github.com/segmentio/kafka-go"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // В этом файле хранятся общие части для всех тестов.
@@ -57,6 +61,48 @@ func fakeOrder(id string) *model.Order {
 	return &model.Order{OrderUID: id}
 }
 
+func fakeValidOrder(id string) *model.Order {
+	now := time.Now().UTC()
+
+	return &model.Order{
+		OrderUID:    id,
+		CustomerID:  "cust-001",
+		DateCreated: now,
+		OofShard:    "1",
+		Delivery: model.Delivery{
+			Name:    "Alice",
+			Phone:   "+1234567890",
+			Zip:     "10001",
+			City:    "NY",
+			Address: "5th Avenue, 1",
+			Region:  "NY",
+			Email:   "alice@example.com",
+		},
+		Payment: model.Payment{
+			Transaction:  "trx-001",
+			Currency:     "USD",
+			Provider:     "visa",
+			Amount:       149.90,
+			PaymentDt:    1712345678,
+			Bank:         "Chase",
+			DeliveryCost: 0,
+			GoodsTotal:   1,
+			CustomFee:    0,
+		},
+		Items: []model.Item{
+			{
+				ChrtID:      1,        // required,gte=1
+				TrackNumber: "TRK123", // required
+				Price:       149.90,   // gte=0
+				Sale:        0,        // 0..100
+				TotalPrice:  149.90,   // gte=0
+				NmID:        1,        // gte=0
+				Status:      0,        // gte=0
+			},
+		},
+	}
+}
+
 func idsFromOrders(orders []*model.Order) []string {
 	out := make([]string, 0, len(orders))
 	for _, o := range orders {
@@ -80,4 +126,12 @@ func strconvI(i int) string {
 		i /= 10
 	}
 	return string(b[pos:])
+}
+
+// Вспомогательная функция, чтобы быстро маршалить объект в []byte
+func mustJSON(t *testing.T, v any) []byte {
+	t.Helper()
+	b, err := json.Marshal(v)
+	require.NoError(t, err)
+	return b
 }
