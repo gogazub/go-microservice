@@ -1,7 +1,12 @@
+// Package model - модели заказа для маршалинга в json; сохранение в бд; задает валидацию.
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
+// Order модель заказа
 type Order struct {
 	OrderUID          string    `json:"order_uid" db:"order_uid" validate:"required"`
 	TrackNumber       string    `json:"track_number" db:"track_number" validate:"-"`
@@ -20,6 +25,7 @@ type Order struct {
 	Items    []Item   `json:"items"    validate:"required,min=1,dive"`
 }
 
+// Delivery модель поля delivery из модели Order`а
 type Delivery struct {
 	DeliveryID int    `json:"-" db:"delivery_id" validate:"-"`
 	OrderUID   string `json:"-" db:"order_uid"    validate:"-"`
@@ -32,6 +38,7 @@ type Delivery struct {
 	Email      string `json:"email" db:"email"     validate:"required,email"`
 }
 
+// Payment модель поля payment из модели Order`а
 type Payment struct {
 	PaymentID    int     `json:"-" db:"payment_id" validate:"-"`
 	OrderUID     string  `json:"-" db:"order_uid"   validate:"-"`
@@ -47,6 +54,7 @@ type Payment struct {
 	CustomFee    float64 `json:"custom_fee" db:"custom_fee"       validate:"gte=0"`
 }
 
+// Item модель массива item из модели Order`а
 type Item struct {
 	ItemID      int     `json:"-" db:"item_id"         validate:"-"`
 	OrderUID    string  `json:"-" db:"order_uid"       validate:"-"`
@@ -61,4 +69,51 @@ type Item struct {
 	NmID        int64   `json:"nm_id" db:"nm_id"       validate:"gte=0"`
 	Brand       string  `json:"brand" db:"brand"       validate:"-"`
 	Status      int     `json:"status" db:"status"     validate:"gte=0"`
+}
+
+// OrderLog облегченная модель для логирования
+type OrderLog struct {
+	UID         string    `json:"order_uid"`
+	Track       string    `json:"track_number,omitempty"`
+	DateCreated time.Time `json:"date_created"`
+	ItemsCount  int       `json:"items_count"`
+	ItemsTotal  float64   `json:"items_total"`
+	Tx          string    `json:"tx,omitempty"`
+	Amount      float64   `json:"amount,omitempty"`
+	Currency    string    `json:"currency,omitempty"`
+}
+
+// GetOrderLog создает облегченный объект OrderLog для логирования
+func GetOrderLog(o *Order) OrderLog {
+	var sum float64
+	for _, it := range o.Items {
+		sum += it.TotalPrice
+	}
+	return OrderLog{
+		UID:         o.OrderUID,
+		Track:       o.TrackNumber,
+		DateCreated: o.DateCreated,
+		ItemsCount:  len(o.Items),
+		ItemsTotal:  sum,
+		Tx:          o.Payment.Transaction,
+		Amount:      o.Payment.Amount,
+		Currency:    o.Payment.Currency,
+	}
+}
+
+func (o *OrderLog) String() string {
+	if o == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf(
+		"order_uid=%s track=%s tx=%s amount=%.2f %s items={count:%d total:%.2f} date=%s",
+		o.UID,
+		o.Track,
+		o.Tx,
+		o.Amount,
+		o.Currency,
+		o.ItemsCount,
+		o.ItemsTotal,
+		o.DateCreated.UTC().Format(time.RFC3339),
+	)
 }

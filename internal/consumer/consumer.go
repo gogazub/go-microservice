@@ -1,3 +1,4 @@
+// Package consumer читает kafka, сохраняет валидные сообщения
 package consumer
 
 import (
@@ -13,6 +14,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+// Config конфигурация consumer для подключения к kafka.
 type Config struct {
 	Brokers  []string
 	Topic    string
@@ -21,16 +23,18 @@ type Config struct {
 	MaxBytes int
 }
 
-type IConsumer interface {
-	processMessage(ctx context.Context, msg kafka.Message) error
-}
+// IConsumer никуда ни инъектируется, так что интерфейс не нужен
+// type IConsumer interface {
+// 	processMessage(ctx context.Context, msg kafka.Message) error
+//}
 
-// Reader вынесен в интерфейс, для корректного DI. Это даст нам возможности для фейков при тестировании
+// IReader вынесен в интерфейс, для корректного DI. Это даст нам возможности для фейков при тестировании
 type IReader interface {
 	ReadMessage(ctx context.Context) (kafka.Message, error)
 	Close() error
 }
 
+// Consumer получает сообщения из reader; валидирует их через validate; передает валидные сообщения в service
 type Consumer struct {
 	reader   IReader
 	service  svc.IService
@@ -38,6 +42,7 @@ type Consumer struct {
 	validate *validator.Validate
 }
 
+// NewConsumer конструктор
 func NewConsumer(service svc.IService, reader IReader) *Consumer {
 
 	return &Consumer{
@@ -47,6 +52,7 @@ func NewConsumer(service svc.IService, reader IReader) *Consumer {
 	}
 }
 
+// Start запускает consumer; Начинает обрабатывать сообщения.
 func (c *Consumer) Start(ctx context.Context) {
 	log.Printf("Starting Kafka consumer for topic: %s", c.config.Topic)
 
@@ -97,10 +103,12 @@ func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error 
 	return nil
 }
 
+// Close Закрывает подключение с kafka
 func (c *Consumer) Close() error {
 	return c.reader.Close()
 }
 
+// ProcessMessageTest экспортируемый метод для тестирования Consumer`а
 func (c *Consumer) ProcessMessageTest(ctx context.Context, msg kafka.Message) error {
 	return c.processMessage(ctx, msg)
 }

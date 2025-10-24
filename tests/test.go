@@ -1,3 +1,4 @@
+// Package tests тесты
 package tests
 
 import (
@@ -16,6 +17,7 @@ import (
 // В этом файле хранятся общие части для всех тестов.
 
 // --- MockService ---
+
 type MockService struct {
 	mock.Mock
 }

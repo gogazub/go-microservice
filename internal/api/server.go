@@ -1,3 +1,4 @@
+// Package api одержит http-сервер
 package api
 
 import (
@@ -10,21 +11,24 @@ import (
 	svc "github.com/gogazub/myapp/internal/service"
 )
 
+// IServer - интерфейс http-сервера. Требует реализации handleGetOrderByID
 type IServer interface {
 	handleGetOrderByID(w http.ResponseWriter, r *http.Request)
 }
 
+// Server - реализация http-сервера.
 type Server struct {
 	service svc.IService
 }
 
+// NewServer - конструктор.
 func NewServer(service svc.IService) *Server {
 	return &Server{
 		service: service,
 	}
 }
 
-// Запускает сервер
+// Start запускает сервер
 func (s *Server) Start(address string) error {
 	http.HandleFunc("/orders/", s.handleGetOrderByID)
 	http.Handle("/", http.FileServer(http.Dir("./internal/server/web")))
@@ -37,9 +41,9 @@ func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 	orderID := r.URL.Path[len("/orders/"):]
 
 	// Используем контекст из http запроса. Он канселится, если запрос был отменен или разорвано соединение
-	ctx_base := r.Context()
+	ctxBase := r.Context()
 	// Навешиваем на него таймаут и прокидываем во все слои
-	ctx, cancel := context.WithTimeout(ctx_base, 1*time.Minute)
+	ctx, cancel := context.WithTimeout(ctxBase, 1*time.Minute)
 	defer cancel()
 	order, err := s.service.GetOrderByID(ctx, orderID)
 	if err != nil {

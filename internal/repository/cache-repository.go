@@ -1,3 +1,4 @@
+// Package repository хранит структуры для хранения данных. В БД/Кеше
 package repository
 
 import (
@@ -12,6 +13,7 @@ import (
 
 const maxCacheSize = 1000
 
+// ICacheRepository интерфейс кеш репозитория
 type ICacheRepository interface {
 	LoadFromDB(psqlRepo IDBRepository)
 	Save(ctx context.Context, order *model.Order) error
@@ -24,6 +26,7 @@ type cacheEntry struct {
 	order *model.Order
 }
 
+// CacheRepository реализция интерфейса. TODO: сделать неэспортируемой эту структуру, а также service и dbrepo
 type CacheRepository struct {
 	mu    sync.RWMutex
 	cache map[string]*cacheEntry
@@ -31,7 +34,7 @@ type CacheRepository struct {
 	list *list.List
 }
 
-// Кэш репозиторий при создании заполняется данными из БД
+// NewCacheRepository Конструктор. Кэш репозиторий при создании заполняется данными из БД
 func NewCacheRepository() *CacheRepository {
 	cache := make(map[string]*cacheEntry)
 	return &CacheRepository{
@@ -40,8 +43,8 @@ func NewCacheRepository() *CacheRepository {
 	}
 }
 
-// Заполнить мапу значениями из БД
-func (repo *CacheRepository) LoadFromDB(psqlRepo IDBRepository) {
+// LoadFromDB Заполнить мапу значениями из БД
+func (r *CacheRepository) LoadFromDB(psqlRepo IDBRepository) {
 	orders, err := psqlRepo.GetAll(context.Background())
 
 	if err != nil {
@@ -51,15 +54,19 @@ func (repo *CacheRepository) LoadFromDB(psqlRepo IDBRepository) {
 	} else {
 		for _, order := range orders {
 
-			repo.Save(context.Background(), order)
-			if repo.Size() >= maxCacheSize {
+			err = r.Save(context.Background(), order)
+			if err != nil {
+				// Логируем ошибку и OrderLog - облегченная модель заказа
+				log.Printf("save order error:%s\norder:%v", err.Error(), model.GetOrderLog(order))
+			}
+			if r.Size() >= maxCacheSize {
 				break
 			}
 		}
 	}
 }
 
-// Сохранить OrderModel в кэше по OrderUID
+// Save добавить OrderModel в кэш
 func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -90,7 +97,7 @@ func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 	return nil
 }
 
-// Получить данные о заказе из кэша по uid заказа. Также освежаем элемент в LRU
+// GetByID Попробовать достать model.Order из кеша. В случае, если элемент есть в кеше, продлевает его жизнь в LRU
 func (r *CacheRepository) GetByID(ctx context.Context, id string) (*model.Order, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -108,6 +115,7 @@ func (r *CacheRepository) GetByID(ctx context.Context, id string) (*model.Order,
 	return ent.order, nil
 }
 
+// GetAll возвращает массив всех model.Order, которые хранятся в кеше
 func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 	// Быстрый отказ, если контекст уже отменен, чтобы не лочить mutex лишний раз
 	if err := ctx.Err(); err != nil {
@@ -133,21 +141,22 @@ func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 	return orders, nil
 }
 
+// Size текущий размер кеша
 func (r *CacheRepository) Size() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.list.Len()
 }
 
-// Удаляет n самых старых элементов (с головы списка).
-func (r *CacheRepository) evictOldest(n int) {
-	for i := 0; i < n; i++ {
-		front := r.list.Front()
-		if front == nil {
-			return
-		}
-		key := front.Value.(string)
-		r.list.Remove(front)
-		delete(r.cache, key)
-	}
-}
+// Удаляет n самых старых элементов (с головы списка). Может потребоваться для оптимизации
+// func (r *CacheRepository) evictOldest(n int) {
+// 	for i := 0; i < n; i++ {
+// 		front := r.list.Front()
+// 		if front == nil {
+// 			return
+// 		}
+// 		key := front.Value.(string)
+// 		r.list.Remove(front)
+// 		delete(r.cache, key)
+// 	}
+// }

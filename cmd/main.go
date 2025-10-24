@@ -1,3 +1,4 @@
+// Точка входа. Инициализирует все зависимости и запускает сервер
 package main
 
 import (
@@ -13,7 +14,6 @@ import (
 	"github.com/gogazub/myapp/internal/api"
 	"github.com/gogazub/myapp/internal/consumer"
 	repo "github.com/gogazub/myapp/internal/repository"
-	"github.com/gogazub/myapp/internal/service"
 	svc "github.com/gogazub/myapp/internal/service"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -65,7 +65,7 @@ func startServer(service svc.IService) {
 	srv := api.NewServer(service)
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %w", err)
+		log.Fatalf("Error loading .env file: %s", err)
 	}
 
 	address := os.Getenv("SERVER_PORT")
@@ -120,6 +120,6 @@ func createService() (*svc.Service, error) {
 	cacheRepo := repo.NewCacheRepository()
 	cacheRepo.LoadFromDB(psqlRepo)
 
-	service := service.NewService(psqlRepo, cacheRepo)
+	service := svc.NewService(psqlRepo, cacheRepo)
 	return service, nil
 }

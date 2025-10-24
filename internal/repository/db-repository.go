@@ -4,20 +4,24 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/gogazub/myapp/internal/model"
 )
 
+// IDBRepository интерфейс БД репозитория
 type IDBRepository interface {
 	Save(ctx context.Context, order *model.Order) error
 	GetByID(ctx context.Context, id string) (*model.Order, error)
 	GetAll(ctx context.Context) ([]*model.Order, error)
 }
 
+// DBRepository реализация БД репозитория.
 type DBRepository struct {
 	db *sql.DB
 }
 
+// NewOrderRepository конструктор. Создает объект репозитория по переданному sql подключению
 func NewOrderRepository(db *sql.DB) *DBRepository {
 	return &DBRepository{db: db}
 }
@@ -29,7 +33,12 @@ func (r *DBRepository) Save(ctx context.Context, order *model.Order) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		err := tx.Rollback()
+		if err != nil {
+			log.Printf("Rollback error:%s", err.Error())
+		}
+	}()
 
 	if err := r.saveOrder(tx, order); err != nil {
 		return err
@@ -70,12 +79,18 @@ func (r *DBRepository) GetByID(ctx context.Context, id string) (*model.Order, er
 	return &order, nil
 }
 
+// GetAll создает массив []*model.Order по данным из Postgres. TODO: поставить ограничение
 func (r *DBRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 	rows, err := r.db.QueryContext(ctx, `SELECT order_uid FROM orders`)
 	if err != nil {
 		return nil, fmt.Errorf("get all orders: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			log.Printf("rows close error:%s", err.Error())
+		}
+	}()
 
 	orders := make([]*model.Order, 0, 256) // предвыделение
 
@@ -248,7 +263,12 @@ func (r *DBRepository) loadItems(ctx context.Context, o *model.Order) error {
 	if err != nil {
 		return fmt.Errorf("loadItems: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		err := rows.Close()
+		if err != nil {
+			log.Printf("rows close error:%s", err.Error())
+		}
+	}()
 
 	for rows.Next() {
 		var it model.Item
