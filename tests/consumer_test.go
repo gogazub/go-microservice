@@ -33,7 +33,7 @@ func TestConsumer(t *testing.T) {
 			log.Printf("consumer close error:%s", err.Error())
 		}
 	}()
-	// Закидываем битый json. SaveOrder не вызывается; возращается err == "bad json"
+	// Закидываем битый json. SaveOrder не вызывается; возращается err
 	t.Run("ProcessMessage/bad json", func(t *testing.T) {
 		// Arrange
 		invalidJSON := kafka.Message{Value: []byte(`{"OrderUID":123`)}
@@ -45,7 +45,7 @@ func TestConsumer(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "bad json")
+		assert.Contains(t, err.Error(), "processing message error")
 
 	})
 

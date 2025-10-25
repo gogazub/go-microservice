@@ -54,10 +54,9 @@ func (r *CacheRepository) LoadFromDB(psqlRepo IDBRepository) error {
 	for _, order := range orders {
 
 		err = r.Save(context.Background(), order)
-		// Если ошибка в save, то логируем ее на месте, чтобы не прерывать сохранение остальных данных
 		if err != nil {
 			// Логируем ошибку и OrderLog - облегченная модель заказа
-			log.Printf("save order error:%s\norder:%v", err.Error(), model.GetOrderLog(order))
+			r.logOrder(fmt.Sprintf("save order error:%v", err), model.GetOrderLog(order))
 		}
 		if r.Size() >= maxCacheSize {
 			break
@@ -70,7 +69,7 @@ func (r *CacheRepository) LoadFromDB(psqlRepo IDBRepository) error {
 // Save добавить OrderModel в кэш
 func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 	if err := ctx.Err(); err != nil {
-		return err
+		return fmt.Errorf("save error:%w", err)
 	}
 
 	r.mu.Lock()
@@ -101,7 +100,7 @@ func (r *CacheRepository) Save(ctx context.Context, order *model.Order) error {
 // GetByID Попробовать достать model.Order из кеша. В случае, если элемент есть в кеше, продлевает его жизнь в LRU
 func (r *CacheRepository) GetByID(ctx context.Context, id string) (*model.Order, error) {
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getByID error:%w", err)
 	}
 
 	r.mu.Lock()
@@ -120,7 +119,7 @@ func (r *CacheRepository) GetByID(ctx context.Context, id string) (*model.Order,
 func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 	// Быстрый отказ, если контекст уже отменен, чтобы не лочить mutex лишний раз
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getAll error:%w", err)
 	}
 
 	r.mu.RLock()
@@ -133,7 +132,7 @@ func (r *CacheRepository) GetAll(ctx context.Context) ([]*model.Order, error) {
 	for _, order := range r.cache {
 		if i%1000 == 0 { // Вместо select с  <-ctx.Done будем редко проверять контекст
 			if err := ctx.Err(); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getAll error:%w", err)
 			}
 		}
 		orders = append(orders, order.order)
@@ -147,6 +146,10 @@ func (r *CacheRepository) Size() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.list.Len()
+}
+
+func (r *CacheRepository) logOrder(msg string, order model.OrderLog) {
+	log.Printf("%s\norder:%v", msg, order)
 }
 
 // Удаляет n самых старых элементов (с головы списка). Может потребоваться для оптимизации

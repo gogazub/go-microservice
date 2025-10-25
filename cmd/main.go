@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -41,18 +42,21 @@ func main() {
 
 	select {
 	case err := <-errCh:
+		if errors.Is(err, fmt.Errorf("stop consumer")) || errors.Is(err, fmt.Errorf("stop server")) {
+			break
+		}
 		log.Printf("application launch err:%v", err)
 		os.Exit(1)
 
 	// Можно добавить healthcheck на consumer и service
 	// И по готовности вывести сообщение об успешном запуске
 	default:
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+		log.Println("Shutting down gracefully...")
 	}
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
-	log.Println("Shutting down gracefully...")
 }
 
 // startConsumer запускает Kafka consumer и передает данные в сервис

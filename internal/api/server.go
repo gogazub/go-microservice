@@ -59,7 +59,6 @@ func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 		// Если получили error от GetOrderById, то даем пользователю 404,а саму ошибку логируем
 		w.WriteHeader(http.StatusNotFound)
 
-		// TODO: вынести логирование в отдельный обработчик s.handleError, так как обработчик запросов не должен заниматься логированием.
 		s.handleError("Failed to get order", err)
 		return
 	}

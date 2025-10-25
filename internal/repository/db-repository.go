@@ -38,7 +38,8 @@ func (r *DBRepository) Save(ctx context.Context, order *model.Order) error {
 	defer func() {
 		err := tx.Rollback()
 		// Пропускаем ошибку ErrTxDone
-		if !errors.Is(err, sql.ErrTxDone) {
+
+		if err != nil && !errors.Is(err, sql.ErrTxDone) {
 			log.Printf("Rollback error:%s", err.Error())
 		}
 	}()

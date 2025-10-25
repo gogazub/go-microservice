@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gogazub/myapp/internal/repository"
+	"github.com/stretchr/testify/assert"
 )
 
 /*
@@ -164,7 +165,8 @@ func TestLRU(t *testing.T) {
 		ctx := context.Background()
 		for i := 0; i < 10000; i++ {
 			order := fakeOrder(strconvI(i))
-			r.Save(ctx, order)
+			err := r.Save(ctx, order)
+			assert.NoError(t, err)
 		}
 		if r.Size() > 1000 {
 			t.Fatalf("saved %d orders \n", r.Size())

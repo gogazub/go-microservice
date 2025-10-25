@@ -38,7 +38,6 @@ type IReader interface {
 type Consumer struct {
 	reader   IReader
 	service  svc.IService
-	config   Config
 	validate *validator.Validate
 }
 
@@ -54,22 +53,20 @@ func NewConsumer(service svc.IService, reader IReader) *Consumer {
 
 // Start запускает consumer; Начинает обрабатывать сообщения.
 func (c *Consumer) Start(ctx context.Context) error {
-	log.Printf("Starting Kafka consumer for topic: %s", c.config.Topic)
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Stopping consumer...")
-			return fmt.Errorf("close consumer")
+			return fmt.Errorf("stop consumer")
 		default:
 			msg, err := c.reader.ReadMessage(ctx)
 			if err != nil {
-				log.Printf("Error reading message: %v", err)
+				c.handleError("reading message error", err)
 				continue
 			}
 			// Если не получилось обработать сообщение, то просто логируем ошибку.
 			if err := c.processMessage(ctx, msg); err != nil {
-				log.Printf("Error processing message: %v", err)
+				c.handleError("processing message error", err)
 			}
 		}
 	}
@@ -77,29 +74,25 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 // Обработка сообщения из кафки
 func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error {
-	log.Printf("Received message: topic=%s partition=%d offset=%d",
-		msg.Topic, msg.Partition, msg.Offset)
+	c.logMsg(msg)
 
 	var order model.Order
 	decoder := json.NewDecoder(bytes.NewReader(msg.Value))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&order); err != nil {
-		return fmt.Errorf("bad json: %w", err)
+		return fmt.Errorf("processing message error: %w", err)
 	}
 
 	// Валидация через validator
 	// Можно добавить валидацию с бизнес логикой. Например, что cost == сумме всех item
 	if err := c.validate.Struct(order); err != nil {
-		return err
+		return fmt.Errorf("processing message error:%w", err)
 	}
-
-	log.Printf("Processing order: %s", order.OrderUID)
 
 	if err := c.service.SaveOrder(ctx, &order); err != nil {
-		return fmt.Errorf("process message error: %w", err)
+		return fmt.Errorf("processing message error:%w", err)
 	}
 
-	log.Printf("Successfully processed and saved order: %s", order.OrderUID)
 	return nil
 }
 
@@ -111,4 +104,14 @@ func (c *Consumer) Close() error {
 // ProcessMessageTest экспортируемый метод для тестирования Consumer`а
 func (c *Consumer) ProcessMessageTest(ctx context.Context, msg kafka.Message) error {
 	return c.processMessage(ctx, msg)
+}
+
+func (c *Consumer) handleError(msg string, err error) {
+	log.Printf("%s:%v", msg, err)
+}
+
+func (c *Consumer) logMsg(msg kafka.Message) {
+	// TODO: вынести логер в отдельную зависимость consumer`а, чтобы подставлять stub версию в тестах
+	// log.Printf("Received message: topic=%s partition=%d offset=%d",
+	// 	msg.Topic, msg.Partition, msg.Offset)
 }
