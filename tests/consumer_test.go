@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"testing"
 
 	"github.com/go-playground/validator/v10"
@@ -26,7 +27,12 @@ func TestConsumer(t *testing.T) {
 	stubService := &StubService{}
 	//mockService := &MockService{}
 	c := consumer.NewConsumer(stubService, stubReader)
-	defer c.Close()
+	defer func() {
+		err := c.Close()
+		if err != nil {
+			log.Printf("consumer close error:%s", err.Error())
+		}
+	}()
 	// Закидываем битый json. SaveOrder не вызывается; возращается err == "bad json"
 	t.Run("ProcessMessage/bad json", func(t *testing.T) {
 		// Arrange

@@ -18,41 +18,54 @@ import (
 
 // --- MockService ---
 
+// MockService мок реализация Service`а
 type MockService struct {
 	mock.Mock
 }
 
+// SaveOrder мок реализация. Записывает вызовы в mock.Called
 func (m *MockService) SaveOrder(ctx context.Context, order *model.Order) error {
 	args := m.Called(ctx, order)
 	return args.Error(0)
 }
+
+// GetOrderByID мок реализация. Записывает вызовы в mock.Called
 func (m *MockService) GetOrderByID(ctx context.Context, id string) (*model.Order, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(*model.Order), args.Error(1)
 }
 
 // --- StubService ---
+
+// StubService stub реализация Service`а. Вызовы методов возвращают установленную ошибку Err
 type StubService struct {
 	Err error
 }
 
-func (s *StubService) SaveOrder(ctx context.Context, order *model.Order) error {
+// SaveOrder stub реализация. Возвращает установленную ошибку StubService.Err
+func (s *StubService) SaveOrder(_ context.Context, _ *model.Order) error {
 	return s.Err
 }
-func (s *StubService) GetOrderByID(ctx context.Context, id string) (*model.Order, error) {
+
+// GetOrderByID stub реализация. Возвращает установленную ошибку StubService.Err
+func (s *StubService) GetOrderByID(_ context.Context, _ string) (*model.Order, error) {
 	return nil, s.Err
 }
 
 // --- StubReader ---
 
+// StubReader реализация Service`а
 type StubReader struct {
 	msg kafka.Message
 	err error
 }
 
-func (s *StubReader) ReadMessage(ctx context.Context) (kafka.Message, error) {
+// ReadMessage stub реализция. Возвращает установленные (StubReader.msg, StubReader.err)
+func (s *StubReader) ReadMessage(_ context.Context) (kafka.Message, error) {
 	return s.msg, s.err
 }
+
+// Close stub реализация. Возвращает устновленную ошибку StubReader.err
 func (s *StubReader) Close() error {
 	return s.err
 }
