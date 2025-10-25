@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -33,9 +34,11 @@ func (r *DBRepository) Save(ctx context.Context, order *model.Order) error {
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		err := tx.Rollback()
-		if err != nil {
+		// Пропускаем ошибку ErrTxDone
+		if !errors.Is(err, sql.ErrTxDone) {
 			log.Printf("Rollback error:%s", err.Error())
 		}
 	}()
@@ -53,7 +56,10 @@ func (r *DBRepository) Save(ctx context.Context, order *model.Order) error {
 		return err
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetByID возвращает заказ по ID
@@ -266,7 +272,7 @@ func (r *DBRepository) loadItems(ctx context.Context, o *model.Order) error {
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			log.Printf("rows close error:%s", err.Error())
+			log.Printf("rows close error:%s", err)
 		}
 	}()
 

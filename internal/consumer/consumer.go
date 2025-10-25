@@ -53,14 +53,14 @@ func NewConsumer(service svc.IService, reader IReader) *Consumer {
 }
 
 // Start запускает consumer; Начинает обрабатывать сообщения.
-func (c *Consumer) Start(ctx context.Context) {
+func (c *Consumer) Start(ctx context.Context) error {
 	log.Printf("Starting Kafka consumer for topic: %s", c.config.Topic)
 
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("Stopping consumer...")
-			return
+			return fmt.Errorf("close consumer")
 		default:
 			msg, err := c.reader.ReadMessage(ctx)
 			if err != nil {

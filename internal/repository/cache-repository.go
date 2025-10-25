@@ -15,7 +15,7 @@ const maxCacheSize = 1000
 
 // ICacheRepository интерфейс кеш репозитория
 type ICacheRepository interface {
-	LoadFromDB(psqlRepo IDBRepository)
+	LoadFromDB(psqlRepo IDBRepository) error
 	Save(ctx context.Context, order *model.Order) error
 	GetByID(ctx context.Context, id string) (*model.Order, error)
 	GetAll(ctx context.Context) ([]*model.Order, error)
@@ -44,26 +44,27 @@ func NewCacheRepository() *CacheRepository {
 }
 
 // LoadFromDB Заполнить мапу значениями из БД
-func (r *CacheRepository) LoadFromDB(psqlRepo IDBRepository) {
+func (r *CacheRepository) LoadFromDB(psqlRepo IDBRepository) error {
 	orders, err := psqlRepo.GetAll(context.Background())
 
 	if err != nil {
-		// Можно добавить флаг на пропуск логирования ctx.Err.
-		// То есть пропускать ошибки, по типу таймаута
-		log.Println("Error loading orders from DB:", err)
-	} else {
-		for _, order := range orders {
+		return fmt.Errorf("load from db error:%w", err)
+	}
 
-			err = r.Save(context.Background(), order)
-			if err != nil {
-				// Логируем ошибку и OrderLog - облегченная модель заказа
-				log.Printf("save order error:%s\norder:%v", err.Error(), model.GetOrderLog(order))
-			}
-			if r.Size() >= maxCacheSize {
-				break
-			}
+	for _, order := range orders {
+
+		err = r.Save(context.Background(), order)
+		// Если ошибка в save, то логируем ее на месте, чтобы не прерывать сохранение остальных данных
+		if err != nil {
+			// Логируем ошибку и OrderLog - облегченная модель заказа
+			log.Printf("save order error:%s\norder:%v", err.Error(), model.GetOrderLog(order))
+		}
+		if r.Size() >= maxCacheSize {
+			break
 		}
 	}
+
+	return nil
 }
 
 // Save добавить OrderModel в кэш

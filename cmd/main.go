@@ -23,11 +23,31 @@ import (
 func main() {
 	service, err := createService()
 	if err != nil {
-		log.Fatalf("Error creating service: %v", err)
+		log.Printf("create service error:%v", err)
+		os.Exit(1)
 	}
 
-	go startConsumer(service)
-	go startServer(service)
+	errCh := make(chan error, 1)
+	go func() {
+		if err := startConsumer(service); err != nil {
+			errCh <- err
+		}
+	}()
+	go func() {
+		if err := startServer(service); err != nil {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		log.Printf("application launch err:%v", err)
+		os.Exit(1)
+
+	// Можно добавить healthcheck на consumer и service
+	// И по готовности вывести сообщение об успешном запуске
+	default:
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -36,7 +56,7 @@ func main() {
 }
 
 // startConsumer запускает Kafka consumer и передает данные в сервис
-func startConsumer(service svc.IService) {
+func startConsumer(service svc.IService) error {
 	config := consumer.Config{
 		Brokers:  []string{"localhost:9092"},
 		Topic:    "orders",
@@ -57,34 +77,37 @@ func startConsumer(service svc.IService) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kafkaConsumer.Start(ctx)
+	// Можно добавить контекст для цепочки ошибок
+	return kafkaConsumer.Start(ctx)
 }
 
 // startServer запускает HTTP сервер, который обслуживает запросы по order_id
-func startServer(service svc.IService) {
+func startServer(service svc.IService) error {
 	srv := api.NewServer(service)
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %s", err)
+		return fmt.Errorf("starting server error: %w", err)
 	}
 
 	address := os.Getenv("SERVER_PORT")
 	if address == "" {
-		log.Fatalf("SERVER_PORT not set in .env file")
+		return fmt.Errorf("address not specified")
 	}
 
-	log.Printf("Starting HTTP server on %s...", address)
+	// Можно попробовать добавить healthcheck сервера и выводить сообщение о запуске в main,
+	//  а не здесь, потому что startServer не должен заниматься выводом в терминал.
+	log.Printf("Starting HTTP server :%s...", address)
 	if err := srv.Start(address); err != nil {
-		log.Fatalf("Error starting HTTP server: %v", err)
-		return
+		return fmt.Errorf("starting server error: %w", err)
 	}
+	return nil
 }
 
 // Создает подключение к БД
 func connectToDB() (*sql.DB, error) {
 	err := godotenv.Load()
 	if err != nil {
-		return nil, fmt.Errorf("error loading .env file: %w", err)
+		return nil, fmt.Errorf("connect to db error: %w", err)
 	}
 
 	dbHost := os.Getenv("DB_HOST")
@@ -99,11 +122,11 @@ func connectToDB() (*sql.DB, error) {
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database connection: %w", err)
+		return nil, fmt.Errorf("connect to db error: %w", err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("connect to db error: %w", err)
 	}
 
 	return db, nil
@@ -113,12 +136,16 @@ func connectToDB() (*sql.DB, error) {
 func createService() (*svc.Service, error) {
 	db, err := connectToDB()
 	if err != nil {
-		return &svc.Service{}, err
+		return nil, fmt.Errorf("create service error:%w", err)
 	}
 
 	psqlRepo := repo.NewOrderRepository(db)
 	cacheRepo := repo.NewCacheRepository()
-	cacheRepo.LoadFromDB(psqlRepo)
+
+	err = cacheRepo.LoadFromDB(psqlRepo)
+	if err != nil {
+		return nil, fmt.Errorf("create service error:%w", err)
+	}
 
 	service := svc.NewService(psqlRepo, cacheRepo)
 	return service, nil

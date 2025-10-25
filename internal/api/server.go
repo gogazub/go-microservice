@@ -28,10 +28,19 @@ func NewServer(service svc.IService) *Server {
 	}
 }
 
+// Обработчик ошибок вынесен в отдельный модуль. На это две причины
+// 1. обработчики запросов не должны заниматься логированием
+// 2. даем гибкость настройки логирования
+func (s *Server) handleError(msg string, err error) {
+	log.Printf("%s:%v", msg, err)
+}
+
 // Start запускает сервер
 func (s *Server) Start(address string) error {
 	http.HandleFunc("/orders/", s.handleGetOrderByID)
 	http.Handle("/", http.FileServer(http.Dir("./internal/server/web")))
+
+	// TODO: вывод сообщений в терминал должен быть в main
 	log.Printf("Server is running on %s\n", address)
 	return http.ListenAndServe(address, nil)
 }
@@ -49,7 +58,9 @@ func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Если получили error от GetOrderById, то даем пользователю 404,а саму ошибку логируем
 		w.WriteHeader(http.StatusNotFound)
-		log.Printf("Failed to get order: %v", err)
+
+		// TODO: вынести логирование в отдельный обработчик s.handleError, так как обработчик запросов не должен заниматься логированием.
+		s.handleError("Failed to get order", err)
 		return
 	}
 
@@ -57,7 +68,6 @@ func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(order); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		log.Printf("Failed to encode order: %v", err)
-		//http.Error(w, fmt.Sprintf("Failed to encode order: %v", err), http.StatusInternalServerError)
+		s.handleError("Failed to encode order", err)
 	}
 }
