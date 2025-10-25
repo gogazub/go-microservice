@@ -38,11 +38,10 @@ func (s *Server) handleError(msg string, err error) {
 // Start запускает сервер
 func (s *Server) Start(address string) error {
 	http.HandleFunc("/orders/", s.handleGetOrderByID)
-	http.Handle("/", http.FileServer(http.Dir("./internal/server/web")))
-
+	http.Handle("/", http.FileServer(http.Dir("./internal/api/web")))
 	// TODO: вывод сообщений в терминал должен быть в main
-	log.Printf("Server is running on %s\n", address)
-	return http.ListenAndServe(address, nil)
+	log.Printf("Server is running on %s\n", "localhost:"+address)
+	return http.ListenAndServe("localhost:"+address, nil)
 }
 
 // Обработчик GET-запросов по order_id
