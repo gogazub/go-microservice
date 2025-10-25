@@ -38,7 +38,7 @@ func TestCacheRepo(t *testing.T) {
 
 	t.Run("Save/new element then GetByID", func(t *testing.T) {
 		ctx := context.Background()
-		in := fakeOrder("o1")
+		in := FakeOrder("o1")
 
 		if err := repo.Save(ctx, in); err != nil {
 			t.Fatalf("save: %v", err)
@@ -54,8 +54,8 @@ func TestCacheRepo(t *testing.T) {
 
 	t.Run("Save/existing element overwritten", func(t *testing.T) {
 		ctx := context.Background()
-		first := fakeOrder("same")
-		second := fakeOrder("same")
+		first := FakeOrder("same")
+		second := FakeOrder("same")
 
 		if err := repo.Save(ctx, first); err != nil {
 			t.Fatalf("save first: %v", err)
@@ -89,7 +89,7 @@ func TestCacheRepo(t *testing.T) {
 		repo2 := repository.NewCacheRepository()
 		ctx := context.Background()
 
-		_ = repo2.Save(ctx, fakeOrder("x1"))
+		_ = repo2.Save(ctx, FakeOrder("x1"))
 
 		list, err := repo2.GetAll(ctx)
 		if err != nil {
@@ -106,7 +106,7 @@ func TestCacheRepo(t *testing.T) {
 
 		want := []string{"a", "b", "c"}
 		for _, id := range want {
-			_ = repo2.Save(ctx, fakeOrder(id))
+			_ = repo2.Save(ctx, FakeOrder(id))
 		}
 		list, err := repo2.GetAll(ctx)
 		if err != nil {
@@ -137,7 +137,7 @@ func TestCacheRepo(t *testing.T) {
 	t.Run("Context/canceled: GetAll respects ctx", func(t *testing.T) {
 		repo2 := repository.NewCacheRepository()
 		for i := 0; i < 10_000; i++ {
-			_ = repo2.Save(context.Background(), fakeOrder("id-"+strconvI(i)))
+			_ = repo2.Save(context.Background(), FakeOrder("id-"+strconvI(i)))
 		}
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -164,7 +164,7 @@ func TestLRU(t *testing.T) {
 		r := repository.NewCacheRepository()
 		ctx := context.Background()
 		for i := 0; i < 10000; i++ {
-			order := fakeOrder(strconvI(i))
+			order := FakeOrder(strconvI(i))
 			err := r.Save(ctx, order)
 			assert.NoError(t, err)
 		}
@@ -180,11 +180,11 @@ func TestLRU_EvictsOldestOnOverflow(t *testing.T) {
 
 	const capN = 1000
 	for i := 0; i < capN; i++ {
-		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+		_ = r.Save(ctx, FakeOrder("k"+strconvI(i)))
 	}
 
 	for i := capN; i < capN+25; i++ {
-		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+		_ = r.Save(ctx, FakeOrder("k"+strconvI(i)))
 	}
 
 	for i := 0; i < 25; i++ {
@@ -206,7 +206,7 @@ func TestLRU_GetRefreshesRecency(t *testing.T) {
 
 	const capN = 1000
 	for i := 0; i < capN; i++ {
-		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+		_ = r.Save(ctx, FakeOrder("k"+strconvI(i)))
 	}
 
 	if _, err := r.GetByID(ctx, "k0"); err != nil {
@@ -215,7 +215,7 @@ func TestLRU_GetRefreshesRecency(t *testing.T) {
 
 	const extra = 150
 	for i := capN; i < capN+extra; i++ {
-		_ = r.Save(ctx, fakeOrder("k"+strconvI(i)))
+		_ = r.Save(ctx, FakeOrder("k"+strconvI(i)))
 	}
 
 	if o, _ := r.GetByID(ctx, "k0"); o == nil {

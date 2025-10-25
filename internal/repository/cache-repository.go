@@ -15,10 +15,10 @@ const maxCacheSize = 1000
 
 // ICacheRepository интерфейс кеш репозитория
 type ICacheRepository interface {
-	LoadFromDB(psqlRepo IDBRepository) error
+	//LoadFromDB(psqlRepo IDBRepository) error
 	Save(ctx context.Context, order *model.Order) error
 	GetByID(ctx context.Context, id string) (*model.Order, error)
-	GetAll(ctx context.Context) ([]*model.Order, error)
+	//GetAll(ctx context.Context) ([]*model.Order, error)
 }
 
 type cacheEntry struct {

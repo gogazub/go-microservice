@@ -74,7 +74,6 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 // Обработка сообщения из кафки
 func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error {
-	c.logMsg(msg)
 
 	var order model.Order
 	decoder := json.NewDecoder(bytes.NewReader(msg.Value))
@@ -108,10 +107,4 @@ func (c *Consumer) ProcessMessageTest(ctx context.Context, msg kafka.Message) er
 
 func (c *Consumer) handleError(msg string, err error) {
 	log.Printf("%s:%v", msg, err)
-}
-
-func (c *Consumer) logMsg(msg kafka.Message) {
-	// TODO: вынести логер в отдельную зависимость consumer`а, чтобы подставлять stub версию в тестах
-	// log.Printf("Received message: topic=%s partition=%d offset=%d",
-	// 	msg.Topic, msg.Partition, msg.Offset)
 }

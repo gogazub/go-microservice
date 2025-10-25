@@ -55,7 +55,7 @@ func TestConsumer(t *testing.T) {
 
 		mockSvc := &MockService{}
 		c = consumer.NewConsumer(mockSvc, stubReader)
-		fakeOrder := fakeOrder("123")
+		fakeOrder := FakeOrder("123")
 		fakeOrder.SmID = -1
 
 		marshaled, err := json.Marshal(fakeOrder)
@@ -74,7 +74,7 @@ func TestConsumer(t *testing.T) {
 		mockSvc := &MockService{}
 		c = consumer.NewConsumer(mockSvc, stubReader)
 
-		fakeOrder := fakeValidOrder("123")
+		fakeOrder := FakeValidOrder("123")
 
 		var orderMap map[string]interface{}
 		require.NoError(t, json.Unmarshal(mustJSON(t, fakeOrder), &orderMap))
@@ -114,7 +114,7 @@ func TestConsumer(t *testing.T) {
 		mockSvc := &MockService{}
 		c = consumer.NewConsumer(mockSvc, stubReader)
 
-		order := fakeValidOrder("1")
+		order := FakeValidOrder("1")
 		marshaled, err := json.Marshal(order)
 		require.NoError(t, err)
 
@@ -138,7 +138,7 @@ func TestConsumer(t *testing.T) {
 		mockSvc := &MockService{}
 		c := consumer.NewConsumer(mockSvc, stubReader)
 
-		order := fakeValidOrder("1")
+		order := FakeValidOrder("1")
 		marshaled, err := json.Marshal(order)
 		require.NoError(t, err)
 
@@ -161,7 +161,7 @@ func TestConsumer(t *testing.T) {
 		mockSvc := &MockService{}
 		c := consumer.NewConsumer(mockSvc, stubReader)
 
-		order := fakeValidOrder("2")
+		order := FakeValidOrder("2")
 		marshaled, err := json.Marshal(order)
 		require.NoError(t, err)
 

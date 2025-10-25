@@ -30,7 +30,7 @@ func q(sql string) string { return regexp.QuoteMeta(sql) }
 func TestDBRepository_Save(t *testing.T) {
 	db, mock := newDB(t)
 	repo := repository.NewOrderRepository(db)
-	o := fakeValidOrder("uid-1")
+	o := FakeValidOrder("uid-1")
 
 	t.Run("success: upsert всех сущностей в одной транзакции -> commit", func(t *testing.T) {
 		mock.ExpectBegin()
@@ -189,7 +189,7 @@ func TestDBRepository_GetByID(t *testing.T) {
 	repo := repository.NewOrderRepository(db)
 
 	t.Run("success: грузим order + delivery + payment + items", func(t *testing.T) {
-		o := fakeValidOrder("uid-2")
+		o := FakeValidOrder("uid-2")
 		expectGetByID(mock, o)
 
 		got, err := repo.GetByID(context.Background(), o.OrderUID)
@@ -223,8 +223,8 @@ func TestDBRepository_GetAll(t *testing.T) {
 			AddRow("uid-2")
 		mock.ExpectQuery(q(`SELECT order_uid FROM orders`)).WillReturnRows(ids)
 
-		o1 := fakeValidOrder("uid-1")
-		o2 := fakeValidOrder("uid-2")
+		o1 := FakeValidOrder("uid-1")
+		o2 := FakeValidOrder("uid-2")
 		expectGetByID(mock, o1)
 		expectGetByID(mock, o2)
 

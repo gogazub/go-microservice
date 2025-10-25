@@ -72,11 +72,13 @@ func (s *StubReader) Close() error {
 
 // --- utinls ---
 
-func fakeOrder(id string) *model.Order {
+// FakeOrder создает пустой order, с заданным id
+func FakeOrder(id string) *model.Order {
 	return &model.Order{OrderUID: id}
 }
 
-func fakeValidOrder(id string) *model.Order {
+// FakeValidOrder создает валидный ордер с заполненными полями и заданным id
+func FakeValidOrder(id string) *model.Order {
 	now := time.Now().UTC()
 
 	return &model.Order{
