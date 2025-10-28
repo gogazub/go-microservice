@@ -24,7 +24,7 @@ import (
 func main() {
 	service, err := createService()
 	if err != nil {
-		log.Printf("create service error:%v", err)
+		log.Printf("starting app error: %v", err)
 		os.Exit(1)
 	}
 
