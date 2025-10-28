@@ -78,6 +78,7 @@
 - Контейнеризация: Docker + docker-compose
 - Тестирование: testify с моками
 - Вспомогательный producer: Go
+- Линтер - Trunk
 
 ---
 
