@@ -61,8 +61,9 @@ func main() {
 
 // startConsumer запускает Kafka consumer и передает данные в сервис
 func startConsumer(service svc.IService) error {
+	broker := os.Getenv("KAFKA_BROKER")
 	config := consumer.Config{
-		Brokers:  []string{"localhost:9092"},
+		Brokers:  []string{broker},
 		Topic:    "orders",
 		GroupID:  "order-group",
 		MinBytes: 10e3,

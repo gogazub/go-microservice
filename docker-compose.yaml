@@ -62,6 +62,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - DB_PORT=${DB_PORT}
       - DB_SSLMODE=${DB_SSLMODE}
+      - KAFKA_BROKER=${KAFKA_BROKER}
     ports:
       - 8081:8081
 

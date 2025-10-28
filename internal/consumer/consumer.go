@@ -74,13 +74,14 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 // Обработка сообщения из кафки
 func (c *Consumer) processMessage(ctx context.Context, msg kafka.Message) error {
-
 	var order model.Order
 	decoder := json.NewDecoder(bytes.NewReader(msg.Value))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&order); err != nil {
 		return fmt.Errorf("processing message error: %w", err)
 	}
+
+	log.Printf("get message: %s", order.OrderUID)
 
 	// Валидация через validator
 	// Можно добавить валидацию с бизнес логикой. Например, что cost == сумме всех item
