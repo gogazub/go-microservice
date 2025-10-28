@@ -25,3 +25,6 @@ apply-migration
 script.sh
 
 venv/
+
+cover.txt
+coverage.out
