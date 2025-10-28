@@ -39,9 +39,10 @@ func (s *Server) handleError(msg string, err error) {
 func (s *Server) Start(address string) error {
 	http.HandleFunc("/orders/", s.handleGetOrderByID)
 	http.Handle("/", http.FileServer(http.Dir("./internal/api/web")))
+	http.HandleFunc("/healt", handleHealth)
 	// TODO: вывод сообщений в терминал должен быть в main
-	log.Printf("Server is running on %s\n", "localhost:"+address)
-	return http.ListenAndServe("localhost:"+address, nil)
+	log.Printf("Server is running on %s\n", address)
+	return http.ListenAndServe(address, nil)
 }
 
 // Обработчик GET-запросов по order_id
@@ -67,5 +68,17 @@ func (s *Server) handleGetOrderByID(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(order); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		s.handleError("Failed to encode order", err)
+	}
+}
+
+func handleHealth(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	ok := map[string]string{
+		"status": "ok",
+	}
+	err := json.NewEncoder(w).Encode(&ok)
+	if err != nil {
+		log.Println(err.Error())
 	}
 }

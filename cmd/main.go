@@ -93,14 +93,14 @@ func startServer(service svc.IService) error {
 		return fmt.Errorf("starting server error: %w", err)
 	}
 
-	address := os.Getenv("SERVER_PORT")
+	address := ":" + os.Getenv("SERVER_PORT")
 	if address == "" {
 		return fmt.Errorf("address not specified")
 	}
 
 	// Можно попробовать добавить healthcheck сервера и выводить сообщение о запуске в main,
 	//  а не здесь, потому что startServer не должен заниматься выводом в терминал.
-	log.Printf("Starting HTTP server :%s...", address)
+	log.Printf("Starting HTTP server %s...", address)
 	if err := srv.Start(address); err != nil {
 		return fmt.Errorf("starting server error: %w", err)
 	}

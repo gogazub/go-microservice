@@ -8,8 +8,15 @@ RUN go mod download
 COPY . .
 RUN go build -o app ./cmd/main.go
 
-FROM alpine:latest
+
+FROM alpine:3.18
+
+WORKDIR /app
+
 COPY --from=builder /app/app .
-EXPOSE ${SERVER_PORT}
+COPY --from=builder /app/internal/api/web /app/internal/api/web
+COPY --from=builder /app/.env /app/.env
+
+EXPOSE 8081
 
 CMD ["./app"]
