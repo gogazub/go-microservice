@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -21,7 +22,16 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+var (
+	ErrStopConsumer = errors.New("stop consumer")
+	ErrStopServer   = errors.New("stop server")
+)
+
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Printf("warning: no .env loaded: %v", err)
+	}
+
 	service, err := createService()
 	if err != nil {
 		log.Printf("starting app error: %v", err)
@@ -29,38 +39,58 @@ func main() {
 	}
 
 	errCh := make(chan error, 1)
+	rootCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
-		if err := startConsumer(service); err != nil {
+		defer wg.Done()
+		if err := startConsumer(rootCtx, service); err != nil && !errors.Is(err, context.Canceled) {
 			errCh <- err
 		}
 	}()
+
+	wg.Add(1)
 	go func() {
-		if err := startServer(service); err != nil {
+		defer wg.Done()
+		if err := startServer(rootCtx, service); err != nil && !errors.Is(err, context.Canceled) {
 			errCh <- err
 		}
 	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case err := <-errCh:
-		if errors.Is(err, fmt.Errorf("stop consumer")) || errors.Is(err, fmt.Errorf("stop server")) {
-			break
-		}
-		log.Printf("application launch err:%v", err)
-		os.Exit(1)
-
-	// Можно добавить healthcheck на consumer и service
-	// И по готовности вывести сообщение об успешном запуске
-	default:
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigChan
-		log.Println("Shutting down gracefully...")
+		log.Printf("component error: %v - initiating shutdown", err)
+		cancel()
+	case sig := <-sigCh:
+		log.Printf("signal %v received - initiating shutdown", sig)
+		cancel()
 	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	timeout := 40 * time.Second
+	select {
+	case <-done:
+		log.Println("all components stopped gracefully")
+	case <-time.After(timeout):
+		log.Printf("timeout (%s) waiting for components to stop, exiting", timeout)
+	}
+
+	log.Println("shutdown complete")
 
 }
 
 // startConsumer запускает Kafka consumer и передает данные в сервис
-func startConsumer(service svc.IService) error {
+func startConsumer(ctx context.Context, service svc.IService) error {
 	broker := os.Getenv("KAFKA_BROKER")
 	config := consumer.Config{
 		Brokers:  []string{broker},
@@ -79,20 +109,13 @@ func startConsumer(service svc.IService) error {
 	}
 	reader := kafka.NewReader(kafkaCfg)
 	kafkaConsumer := consumer.NewConsumer(service, reader)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Можно добавить контекст для цепочки ошибок
 	return kafkaConsumer.Start(ctx)
 }
 
 // startServer запускает HTTP сервер, который обслуживает запросы по order_id
-func startServer(service svc.IService) error {
+func startServer(ctx context.Context, service svc.IService) error {
 	srv := api.NewServer(service)
-
-	if err := godotenv.Load(); err != nil {
-		return fmt.Errorf("starting server error: %w", err)
-	}
 
 	address := ":" + os.Getenv("SERVER_PORT")
 	if address == "" {
@@ -102,7 +125,7 @@ func startServer(service svc.IService) error {
 	// Можно попробовать добавить healthcheck сервера и выводить сообщение о запуске в main,
 	//  а не здесь, потому что startServer не должен заниматься выводом в терминал.
 	log.Printf("Starting HTTP server %s...", address)
-	if err := srv.Start(address); err != nil {
+	if err := srv.Start(ctx, address); err != nil {
 		return fmt.Errorf("starting server error: %w", err)
 	}
 	return nil
@@ -110,10 +133,6 @@ func startServer(service svc.IService) error {
 
 // Создает подключение к БД
 func connectToDB() (*sql.DB, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, fmt.Errorf("connect to db error: %w", err)
-	}
 
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")

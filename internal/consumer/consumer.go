@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -55,19 +56,16 @@ func NewConsumer(service svc.IService, reader IReader) *Consumer {
 func (c *Consumer) Start(ctx context.Context) error {
 
 	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("stop consumer")
-		default:
-			msg, err := c.reader.ReadMessage(ctx)
-			if err != nil {
-				c.handleError("reading message error", err)
-				continue
+		msg, err := c.reader.ReadMessage(ctx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return context.Canceled
 			}
-			// Если не получилось обработать сообщение, то просто логируем ошибку.
-			if err := c.processMessage(ctx, msg); err != nil {
-				c.handleError("processing message error", err)
-			}
+			c.handleError("reading message error", err)
+			continue
+		}
+		if err := c.processMessage(ctx, msg); err != nil {
+			c.handleError("processing message error", err)
 		}
 	}
 }
