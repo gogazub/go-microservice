@@ -44,11 +44,12 @@ func main() {
 	}
 	log.Printf("Producer config: brokers=%v topic=%s", cfg.Brokers, cfg.Topic)
 
-	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  cfg.Brokers,
+	w := &kafka.Writer{
+		Addr:     kafka.TCP(cfg.Brokers[0]),
 		Topic:    cfg.Topic,
 		Balancer: &kafka.Hash{},
-	})
+	}
+
 	defer func() {
 		if err := w.Close(); err != nil {
 			log.Println("error closing kafka writer:", err)
